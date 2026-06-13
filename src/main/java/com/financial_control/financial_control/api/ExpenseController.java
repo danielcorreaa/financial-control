@@ -87,4 +87,10 @@ public class ExpenseController {
         service.removeExpense(monthId, expenseId);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/import-recurring")
+    @Operation(summary = "Importar todas as despesas recorrentes ativas para o mês")
+    public ResponseEntity<List<ExpenseResponse>> importRecurring(@PathVariable String monthId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.importRecurringExpenses(monthId));
+    }
 }

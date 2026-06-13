@@ -10,6 +10,8 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import ProventosPage from './pages/ProventosPage'
 import ChartsPage from './pages/ChartsPage'
+import RecurringExpensesPage from './pages/RecurringExpensesPage'
+import BudgetPage from './pages/BudgetPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -34,6 +36,8 @@ function AppRoutes() {
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
         <Route path="/proventos" element={<ProventosPage />} />
         <Route path="/charts" element={<ChartsPage />} />
+        <Route path="/recurring" element={<RecurringExpensesPage />} />
+        <Route path="/budget"    element={<BudgetPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

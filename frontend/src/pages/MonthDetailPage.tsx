@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Plus, Pencil, Trash2, CheckCircle, XCircle, Lock, Unlock, Loader2
+  ArrowLeft, Plus, Pencil, Trash2, CheckCircle, XCircle, Lock, Unlock, Loader2, RefreshCw,
+  Download, Printer,
 } from 'lucide-react'
 import api from '../lib/api'
-import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType } from '../types'
+import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType, CategoryBudget } from '../types'
 import {
   formatCurrency, formatDate, MONTH_NAMES,
   CATEGORY_LABELS, CATEGORY_BADGE, INCOME_TYPE_LABELS, INCOME_TYPE_BADGE
@@ -14,8 +15,28 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import StatCard from '../components/StatCard'
 import toast from 'react-hot-toast'
 
-const CATEGORIES = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][]
+const CATEGORIES  = Object.entries(CATEGORY_LABELS)   as [ExpenseCategory, string][]
 const INCOME_TYPES = Object.entries(INCOME_TYPE_LABELS) as [IncomeType, string][]
+
+function exportCSV(month: MonthResponse) {
+  const BOM = '﻿'
+  const rows = [
+    'Tipo,Nome / Descrição,Categoria / Tipo,Valor (R$),Vencimento / Data,Status',
+    ...month.expenses.map(e =>
+      `Despesa,"${e.name}","${CATEGORY_LABELS[e.category]}",${e.amount.toFixed(2)},${e.dueDate ?? ''},${e.status}`
+    ),
+    ...month.incomes.map(i =>
+      `Receita,"${i.description}","${INCOME_TYPE_LABELS[i.type]}",${i.amount.toFixed(2)},${i.date ?? ''},—`
+    ),
+  ]
+  const blob = new Blob([BOM + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `${MONTH_NAMES[month.month]}-${month.year}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // ── Expense Form ─────────────────────────────────────────────────────────────
 function ExpenseForm({ monthId, expense, onClose, onSaved }:
@@ -39,6 +60,8 @@ function ExpenseForm({ monthId, expense, onClose, onSaved }:
         toast.success('Despesa adicionada!')
       }
       onSaved(); onClose()
+    } catch {
+      toast.error('Erro ao salvar despesa.')
     } finally { setLoading(false) }
   }
 
@@ -105,6 +128,8 @@ function IncomeForm({ monthId, income, onClose, onSaved }:
         toast.success('Receita adicionada!')
       }
       onSaved(); onClose()
+    } catch {
+      toast.error('Erro ao salvar receita.')
     } finally { setLoading(false) }
   }
 
@@ -160,6 +185,8 @@ function PayDialog({ monthId, expense, onClose, onSaved }:
       await api.patch(`/months/${monthId}/expenses/${expense.id}/pay`, { paymentDate })
       toast.success('Despesa paga!')
       onSaved(); onClose()
+    } catch {
+      toast.error('Erro ao registrar pagamento.')
     } finally { setLoading(false) }
   }
   return (
@@ -185,7 +212,8 @@ function PayDialog({ monthId, expense, onClose, onSaved }:
 export default function MonthDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [month, setMonth]   = useState<MonthResponse | null>(null)
+  const [month, setMonth]     = useState<MonthResponse | null>(null)
+  const [budget, setBudget]   = useState<CategoryBudget | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes'>('expenses')
   const [expFilter, setExpFilter] = useState<'ALL' | 'PAGO' | 'PENDENTE'>('ALL')
@@ -201,36 +229,75 @@ export default function MonthDetailPage() {
   function load() {
     if (!id) return
     setLoading(true)
-    api.get<MonthResponse>(`/months/${id}`).then(r => setMonth(r.data)).finally(() => setLoading(false))
+    api.get<MonthResponse>(`/months/${id}`)
+      .then(r => {
+        setMonth(r.data)
+        return api.get<CategoryBudget>(`/budgets/${r.data.year}`)
+      })
+      .then(r => setBudget(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [id])
 
   async function handleUnpay(exp: Expense) {
-    await api.patch(`/months/${id}/expenses/${exp.id}/unpay`)
-    toast.success('Pagamento desmarcado.')
-    load()
+    try {
+      await api.patch(`/months/${id}/expenses/${exp.id}/unpay`)
+      toast.success('Pagamento desmarcado.')
+      load()
+    } catch {
+      toast.error('Erro ao desmarcar pagamento.')
+    }
   }
   async function handleDelExpense() {
     if (!delExpense) return
-    await api.delete(`/months/${id}/expenses/${delExpense.id}`)
-    toast.success('Despesa removida.')
-    setDelExpense(null); load()
+    try {
+      await api.delete(`/months/${id}/expenses/${delExpense.id}`)
+      toast.success('Despesa removida.')
+      setDelExpense(null); load()
+    } catch {
+      toast.error('Erro ao remover despesa.')
+    }
   }
   async function handleDelIncome() {
     if (!delIncome) return
-    await api.delete(`/months/${id}/incomes/${delIncome.id}`)
-    toast.success('Receita removida.')
-    setDelIncome(null); load()
+    try {
+      await api.delete(`/months/${id}/incomes/${delIncome.id}`)
+      toast.success('Receita removida.')
+      setDelIncome(null); load()
+    } catch {
+      toast.error('Erro ao remover receita.')
+    }
   }
   async function handleClose() {
-    await api.patch(`/months/${id}/close`)
-    toast.success('Mês fechado!')
-    setCloseConfirm(false); load()
+    try {
+      await api.patch(`/months/${id}/close`)
+      toast.success('Mês fechado!')
+      setCloseConfirm(false); load()
+    } catch {
+      toast.error('Erro ao fechar o mês.')
+    }
   }
   async function handleReopen() {
-    await api.patch(`/months/${id}/reopen`)
-    toast.success('Mês reaberto!')
-    setReopenConfirm(false); load()
+    try {
+      await api.patch(`/months/${id}/reopen`)
+      toast.success('Mês reaberto!')
+      setReopenConfirm(false); load()
+    } catch {
+      toast.error('Erro ao reabrir o mês.')
+    }
+  }
+
+  async function handleImportRecurring() {
+    try {
+      const r = await api.post(`/months/${id}/expenses/import-recurring`)
+      const count = r.data?.length ?? 0
+      if (count === 0) toast('Nenhuma despesa recorrente ativa encontrada.', { icon: 'ℹ️' })
+      else toast.success(`${count} despesa(s) importada(s)!`)
+      load()
+    } catch {
+      toast.error('Erro ao importar recorrentes.')
+    }
   }
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 size={36} className="animate-spin text-violet-500" /></div>
@@ -241,6 +308,7 @@ export default function MonthDetailPage() {
   const paid     = month.expenses.filter(e => e.status === 'PAGO').reduce((s, e) => s + e.amount, 0)
   const pending  = totalE - paid
   const balance  = totalI - totalE
+  const pct      = totalI > 0 ? Math.min((totalE / totalI) * 100, 100) : 0
   const isClosed = month.status === 'FECHADO'
   const filtered = month.expenses.filter(e => expFilter === 'ALL' ? true : e.status === expFilter)
 
@@ -262,20 +330,28 @@ export default function MonthDetailPage() {
           </div>
           {month.notes && <p className="text-gray-500 text-sm mt-0.5">{month.notes}</p>}
         </div>
-        {!isClosed && (
-          <button className="btn-secondary btn-sm" onClick={() => setCloseConfirm(true)}>
-            <Lock size={14} /> Fechar Mês
+        <div className="flex items-center gap-2 print-hide">
+          <button className="btn-secondary btn-sm" onClick={() => exportCSV(month)} title="Exportar CSV">
+            <Download size={14} /> CSV
           </button>
-        )}
-        {isClosed && (
-          <button className="btn-warning btn-sm" onClick={() => setReopenConfirm(true)}>
-            <Unlock size={14} /> Reabrir Mês
+          <button className="btn-secondary btn-sm" onClick={() => window.print()} title="Imprimir / Salvar PDF">
+            <Printer size={14} /> PDF
           </button>
-        )}
+          {!isClosed && (
+            <button className="btn-secondary btn-sm" onClick={() => setCloseConfirm(true)}>
+              <Lock size={14} /> Fechar Mês
+            </button>
+          )}
+          {isClosed && (
+            <button className="btn-warning btn-sm" onClick={() => setReopenConfirm(true)}>
+              <Unlock size={14} /> Reabrir Mês
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label="Receitas"  value={formatCurrency(totalI)}   gradient="from-emerald-500 to-teal-600" />
         <StatCard label="Despesas"  value={formatCurrency(totalE)}   gradient="from-rose-500 to-pink-600" />
         <StatCard label="Pago"      value={formatCurrency(paid)}     gradient="from-violet-500 to-indigo-600" />
@@ -284,14 +360,80 @@ export default function MonthDetailPage() {
           gradient={balance >= 0 ? 'from-cyan-500 to-blue-600' : 'from-red-500 to-rose-600'} />
       </div>
 
+      {/* Budget progress */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-gray-700">Progresso do Orçamento</span>
+          <span className="text-sm font-bold text-gray-800">
+            {formatCurrency(totalE)} <span className="text-gray-400 font-normal">de</span> {formatCurrency(totalI)}
+          </span>
+        </div>
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+          <div
+            className={`h-full rounded-full transition-all duration-700 shadow-sm ${
+              pct <= 80  ? 'bg-gradient-to-r from-emerald-400 to-teal-500 shadow-emerald-400/40' :
+              pct <= 100 ? 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-amber-400/40' :
+                           'bg-gradient-to-r from-rose-500 to-pink-600 shadow-rose-500/40'
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-gray-400 mt-1.5">
+          <span>{(totalI > 0 ? (totalE / totalI) * 100 : 0).toFixed(1)}% da receita comprometida</span>
+          <span className={balance >= 0 ? 'text-violet-600 font-semibold' : 'text-rose-600 font-semibold'}>
+            Saldo: {formatCurrency(balance)}
+          </span>
+        </div>
+      </div>
+
+      {/* Category breakdown */}
+      {budget && Object.keys(budget.limits).length > 0 && (
+        <div className="card">
+          <h2 className="text-sm font-bold text-gray-700 mb-4">Orçamento por Categoria</h2>
+          <div className="space-y-3">
+            {(Object.entries(budget.limits) as [ExpenseCategory, number][])
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, limit]) => {
+                const spent = month!.expenses
+                  .filter(e => e.category === cat)
+                  .reduce((s, e) => s + e.amount, 0)
+                const pct = Math.min((spent / limit) * 100, 100)
+                const over = spent > limit
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className={CATEGORY_BADGE[cat]}>{CATEGORY_LABELS[cat]}</span>
+                      </span>
+                      <span className={`font-semibold ${over ? 'text-rose-600' : 'text-gray-600'}`}>
+                        {formatCurrency(spent)} <span className="font-normal text-gray-400">/ {formatCurrency(limit)}</span>
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          pct <= 70  ? 'bg-gradient-to-r from-emerald-400 to-teal-500' :
+                          pct <= 100 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                                       'bg-gradient-to-r from-rose-500 to-pink-600'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex border-b border-gray-100">
           {(['expenses', 'incomes'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${
+              className={`flex-1 py-3.5 text-sm font-semibold transition-all duration-150 ${
                 activeTab === tab
-                  ? 'border-b-2 border-violet-600 text-violet-700 bg-violet-50/50'
+                  ? 'border-b-2 border-violet-500 text-violet-700 dark:text-violet-400 bg-gradient-to-b from-violet-50 to-violet-50/30 dark:from-violet-900/20 dark:to-transparent'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}>
               {tab === 'expenses'
@@ -306,20 +448,25 @@ export default function MonthDetailPage() {
           {activeTab === 'expenses' && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex bg-slate-100 rounded-xl p-1 text-xs gap-0.5">
+                <div className="flex bg-slate-100 dark:bg-[#1a2235] rounded-xl p-1 text-xs gap-0.5">
                   {(['ALL', 'PENDENTE', 'PAGO'] as const).map(f => (
                     <button key={f} onClick={() => setExpFilter(f)}
                       className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                        expFilter === f ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                        expFilter === f ? 'bg-white dark:bg-[#253050] shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
                       }`}>
                       {f === 'ALL' ? 'Todas' : f === 'PENDENTE' ? 'Pendentes' : 'Pagas'}
                     </button>
                   ))}
                 </div>
                 {!isClosed && (
-                  <button className="btn-primary btn-sm ml-auto" onClick={() => setExpenseForm({ open: true })}>
-                    <Plus size={14} /> Despesa
-                  </button>
+                  <div className="ml-auto flex gap-2">
+                    <button className="btn-secondary btn-sm" onClick={handleImportRecurring}>
+                      <RefreshCw size={13} /> Importar recorrentes
+                    </button>
+                    <button className="btn-primary btn-sm" onClick={() => setExpenseForm({ open: true })}>
+                      <Plus size={14} /> Despesa
+                    </button>
+                  </div>
                 )}
               </div>
 

@@ -13,7 +13,7 @@ export interface AuthResponse {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export type ExpenseCategory =
-  | 'MORADIA' | 'EDUCACAO' | 'TRANSPORTE' | 'ALIMENTACAO'
+  | 'MORADIA' | 'EDUCACAO' | 'TRANSPORTE' | 'ALIMENTACAO' | 'LAZER'
   | 'CARTAO_CREDITO' | 'IMPOSTOS' | 'TELEFONIA' | 'INTERNET' | 'OUTROS'
 
 export type ExpenseStatus = 'PENDENTE' | 'PAGO'
@@ -108,6 +108,25 @@ export interface Project {
   totalPaid: number
   totalPending: number
   expenses: ProjectExpense[]
+}
+
+// ─── Budget ──────────────────────────────────────────────────────────────────
+
+export interface CategoryBudget {
+  id: string | null
+  year: number
+  limits: Partial<Record<ExpenseCategory, number>>
+}
+
+// ─── Recurring Expenses ──────────────────────────────────────────────────────
+
+export interface RecurringExpense {
+  id: string
+  name: string
+  category: ExpenseCategory
+  amount: number
+  dayOfMonth?: number
+  active: boolean
 }
 
 // ─── Salary Config ───────────────────────────────────────────────────────────

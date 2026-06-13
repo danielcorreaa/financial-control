@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinControl — Tutorial de Deploy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c14;
+      --surface:   #0f1623;
+      --surface2:  #1a2235;
+      --border:    rgba(255,255,255,0.07);
+      --violet:    #7c3aed;
+      --violet-lt: #a78bfa;
+      --indigo:    #6366f1;
+      --text:      #dde3f0;
+      --muted:     #64748b;
+      --green:     #10b981;
+      --amber:     #f59e0b;
+      --radius:    14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(160deg, #0f0a2e 0%, #1e1157 35%, #3b1f8c 65%, #5b21b6 100%);
+      padding: 64px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(124,58,237,0.3), transparent);
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+    .logo {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 20px; border-radius: 100px;
+      font-weight: 700; font-size: 18px; letter-spacing: -0.3px;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #a78bfa, #6366f1);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800; letter-spacing: -1px;
+      line-height: 1.15; margin-bottom: 16px;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 60%, #a5b4fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 17px; color: rgba(255,255,255,0.65);
+      max-width: 480px; margin: 0 auto 32px;
+    }
+    .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap-6px;
+      padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      border: 1px solid;
+    }
+    .badge-violet { background: rgba(124,58,237,0.2); border-color: rgba(124,58,237,0.4); color: #c4b5fd; }
+    .badge-green  { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35); color: #6ee7b7; }
+    .badge-blue   { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.35); color: #a5b4fc; }
+
+    /* ── Layout ── */
+    .container { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Progress bar ── */
+    .progress-nav {
+      display: flex; gap: 0; margin: 40px 0 48px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .progress-step {
+      flex: 1; padding: 12px 8px; text-align: center;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      border-right: 1px solid var(--border); cursor: pointer;
+      transition: all .15s; text-decoration: none;
+    }
+    .progress-step:last-child { border-right: none; }
+    .progress-step:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .progress-step .num {
+      display: block; font-size: 18px; font-weight: 800;
+      background: linear-gradient(135deg, var(--violet-lt), var(--indigo));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 2px;
+    }
+
+    /* ── Section ── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(124,58,237,0.06), transparent);
+    }
+    .step-badge {
+      min-width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--violet), var(--indigo));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px; color: #fff; flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+    }
+    .section-header h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .section-header .service-tag {
+      margin-left: auto; padding: 4px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .tag-atlas   { background: rgba(0,200,81,0.15);  color: #4ade80;  border: 1px solid rgba(0,200,81,0.25);  }
+    .tag-railway { background: rgba(124,58,237,0.15); color: #c4b5fd;  border: 1px solid rgba(124,58,237,0.3); }
+    .tag-vercel  { background: rgba(255,255,255,0.1); color: #e2e8f0;  border: 1px solid rgba(255,255,255,0.2); }
+    .tag-pwa     { background: rgba(245,158,11,0.15); color: #fcd34d;  border: 1px solid rgba(245,158,11,0.3); }
+
+    .section-body { padding: 24px; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .steps li {
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .step-num {
+      min-width: 26px; height: 26px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--violet-lt);
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .steps li p { font-size: 14px; color: rgba(221,227,240,0.85); }
+    .steps li strong { color: #fff; }
+    .steps li a { color: var(--violet-lt); text-decoration: none; }
+    .steps li a:hover { text-decoration: underline; }
+
+    /* ── Code blocks ── */
+    .code-block {
+      margin: 12px 0 4px;
+      background: #050a14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .code-lang { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .copy-btn {
+      font-size: 11px; font-weight: 600; color: var(--violet-lt);
+      background: none; border: 1px solid rgba(167,139,250,0.3);
+      padding: 3px 10px; border-radius: 6px; cursor: pointer;
+      transition: all .15s;
+    }
+    .copy-btn:hover { background: rgba(167,139,250,0.1); }
+    .copy-btn.copied { color: var(--green); border-color: rgba(16,185,129,0.4); }
+    pre {
+      padding: 14px 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px; line-height: 1.6; overflow-x: auto;
+      color: #c9d1d9;
+    }
+    .hl-comment { color: #6b7280; }
+    .hl-string  { color: #a5d6ff; }
+    .hl-key     { color: #c4b5fd; }
+    .hl-value   { color: #6ee7b7; }
+
+    /* ── Table ── */
+    .vars-table {
+      width: 100%; border-collapse: collapse;
+      margin-top: 12px; font-size: 13px;
+    }
+    .vars-table th {
+      text-align: left; padding: 8px 12px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--muted);
+    }
+    .vars-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    .vars-table tr:last-child td { border-bottom: none; }
+    .var-name {
+      font-family: monospace; font-size: 12px;
+      background: rgba(124,58,237,0.15); color: #c4b5fd;
+      padding: 2px 8px; border-radius: 5px;
+    }
+    .var-desc { color: rgba(221,227,240,0.7); }
+    .var-desc em { color: var(--amber); font-style: normal; font-size: 11px; }
+
+    /* ── Tip / Warning ── */
+    .tip, .warning {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 16px; border-radius: 10px; margin: 16px 0;
+      font-size: 13px;
+    }
+    .tip {
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      color: #6ee7b7;
+    }
+    .warning {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.25);
+      color: #fcd34d;
+    }
+    .tip-icon, .warning-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Final card ── */
+    .final-card {
+      background: linear-gradient(135deg, #1e1157, #3b1f8c);
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: var(--radius); padding: 32px; text-align: center;
+      margin-top: 40px;
+    }
+    .final-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    .final-card p  { color: rgba(255,255,255,0.65); font-size: 14px; margin-bottom: 24px; }
+    .install-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: left; }
+    .install-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 18px;
+    }
+    .install-card .os { font-size: 22px; margin-bottom: 8px; }
+    .install-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .install-card ol { padding-left: 18px; font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.8; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+    @media (max-width: 600px) {
+      .progress-step .label { display: none; }
+      .install-cards { grid-template-columns: 1fr; }
+      .section-header { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="logo">
+      <div class="logo-icon">💰</div>
+      FinControl
+    </div>
+    <h1>Deploy na Nuvem</h1>
+    <p>Coloque seu controle financeiro online em 4 passos. Acesse de qualquer celular, tablet ou computador.</p>
+    <div class="badges">
+      <span class="badge badge-violet">✦ MongoDB Atlas</span>
+      <span class="badge badge-violet">✦ Railway</span>
+      <span class="badge badge-blue">✦ Vercel</span>
+      <span class="badge badge-green">✦ PWA — Android &amp; iOS</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Container ── -->
+<div class="container">
+
+  <!-- Nav -->
+  <nav class="progress-nav">
+    <a href="#step1" class="progress-step"><span class="num">1</span><span class="label">Atlas</span></a>
+    <a href="#step2" class="progress-step"><span class="num">2</span><span class="label">Railway</span></a>
+    <a href="#step3" class="progress-step"><span class="num">3</span><span class="label">Vercel</span></a>
+    <a href="#step4" class="progress-step"><span class="num">4</span><span class="label">Ícones</span></a>
+    <a href="#step5" class="progress-step"><span class="num">📱</span><span class="label">Instalar</span></a>
+  </nav>
+
+  <!-- ── STEP 1: MongoDB Atlas ── -->
+  <div class="section" id="step1">
+    <div class="section-header">
+      <div class="step-badge">1</div>
+      <div>
+        <h2>MongoDB Atlas</h2>
+        <p style="font-size:13px;color:var(--muted);margin-top:2px">Banco de dados gratuito na nuvem (512 MB)</p>
+      </div>
+      <span class="service-tag tag-atlas">Gratuito</span>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <p>Acesse <a href="https://www.mongodb.com/cloud/atlas" target="_blank">mongodb.com/atlas</a> e crie uma conta gratuita. Clique em <strong>Create Free Cluster</strong> e escolha o plano <strong>M0 Free</strong>.</p>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <p>No menu lateral, vá em <strong>Database Access → Add New Database User</strong>. Crie um usuário com senha forte. Anote as credenciais.</p>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <p>Em <strong>Network Access → Add IP Address</strong>, adicione <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px">0.0.0.0/0</code> para liberar o acesso do Railway.</p>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <p>Clique em <strong>Connect → Drivers</strong>, copie a <em>connection string</em> e substitua <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px">&lt;password&gt;</code> pela senha criada no passo 2:</p>
+        </li>
+      </ol>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">Connection String</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+        </div>
+        <pre><span class="hl-string">mongodb+srv://</span><span class="hl-value">usuario</span><span class="hl-string">:</span><span class="hl-value">senha</span><span class="hl-string">@cluster0.xxxxx.mongodb.net/financial_control?retryWrites=true&amp;w=majority</span></pre>
+      </div>
+      <div class="warning">
+        <span class="warning-icon">⚠️</span>
+        <span>Guarde esta string em segredo. Ela contém seu usuário e senha do banco.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Railway ── -->
+  <div class="section" id="step2">
+    <div class="section-header">
+      <div class="step-badge">2</div>
+      <div>
+        <h2>Backend no Railway</h2>
+        <p style="font-size:13px;color:var(--muted);margin-top:2px">Deploy do Spring Boot com Docker</p>
+      </div>
+      <span class="service-tag tag-railway">Railway</span>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <p>Acesse <a href="https://railway.app" target="_blank">railway.app</a> e faça login com sua conta do GitHub.</p>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <p>Clique em <strong>New Project → Deploy from GitHub repo</strong> e selecione o repositório <strong>financial-control</strong>.</p>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <p>Em <strong>Settings → Source</strong>, o <strong>Root Directory</strong> deve estar vazio (o Dockerfile está na raiz do projeto).</p>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <p>Vá em <strong>Variables</strong> e adicione as variáveis abaixo:</p>
+        </li>
+      </ol>
+
+      <table class="vars-table">
+        <thead>
+          <tr>
+            <th>Variável</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="var-name">MONGODB_URI</span></td>
+            <td class="var-desc">Connection string do Atlas (passo 1) <em>⬅ obrigatório</em></td>
+          </tr>
+          <tr>
+            <td><span class="var-name">JWT_SECRET</span></td>
+            <td class="var-desc">String aleatória longa (mínimo 32 caracteres) <em>⬅ obrigatório</em></td>
+          </tr>
+          <tr>
+            <td><span class="var-name">ALLOWED_ORIGINS</span></td>
+            <td class="var-desc">URL do Vercel — preencher após o passo 3 <em>⬅ volte aqui depois</em></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="tip" style="margin-top:16px">
+        <span class="tip-icon">💡</span>
+        <span>Para gerar um JWT_SECRET seguro, abra o terminal e rode: <code style="background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:4px;font-size:12px">node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"</code></span>
+      </div>
+
+      <ol class="steps" style="margin-top:16px">
+        <li>
+          <div class="step-num">5</div>
+          <p>Aguarde o build (≈3 min). Quando aparecer <strong style="color:var(--green)">✓ Deployed</strong>, copie a URL gerada. Exemplo:</p>
+        </li>
+      </ol>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">URL do backend</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+        </div>
+        <pre><span class="hl-string">https://financial-control-production.up.railway.app</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Vercel ── -->
+  <div class="section" id="step3">
+    <div class="section-header">
+      <div class="step-badge">3</div>
+      <div>
+        <h2>Frontend no Vercel</h2>
+        <p style="font-size:13px;color:var(--muted);margin-top:2px">Deploy do React/Vite — CDN global gratuito</p>
+      </div>
+      <span class="service-tag tag-vercel">Vercel</span>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <p>Acesse <a href="https://vercel.com" target="_blank">vercel.com</a>, faça login com GitHub e clique em <strong>New Project → Import</strong> o repositório.</p>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <p>Em <strong>Root Directory</strong>, clique em <strong>Edit</strong> e selecione a pasta <strong>frontend</strong>.</p>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <p>Em <strong>Environment Variables</strong>, adicione:</p>
+        </li>
+      </ol>
+
+      <table class="vars-table">
+        <thead>
+          <tr><th>Variável</th><th>Valor</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="var-name">VITE_API_URL</span></td>
+            <td class="var-desc">URL do Railway do passo 2 <em>⬅ sem barra no final</em></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="code-block" style="margin-top:14px">
+        <div class="code-header">
+          <span class="code-lang">Exemplo .env</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+        </div>
+        <pre><span class="hl-key">VITE_API_URL</span>=<span class="hl-value">https://financial-control-production.up.railway.app</span></pre>
+      </div>
+
+      <ol class="steps" style="margin-top:16px">
+        <li>
+          <div class="step-num">4</div>
+          <p>Clique em <strong>Deploy</strong>. Após o build, copie a URL gerada (ex: <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px">https://fincontrol.vercel.app</code>).</p>
+        </li>
+        <li>
+          <div class="step-num">5</div>
+          <p><strong>Volte ao Railway</strong> e atualize a variável <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px">ALLOWED_ORIGINS</code> com a URL do Vercel. Isso libera o CORS entre frontend e backend.</p>
+        </li>
+      </ol>
+      <div class="tip" style="margin-top:12px">
+        <span class="tip-icon">✅</span>
+        <span>Teste abrindo a URL do Vercel no celular. Se o login funcionar, está tudo certo!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Ícones PWA ── -->
+  <div class="section" id="step4">
+    <div class="section-header">
+      <div class="step-badge">4</div>
+      <div>
+        <h2>Ícones do App (PWA)</h2>
+        <p style="font-size:13px;color:var(--muted);margin-top:2px">Necessário para "Adicionar à tela inicial"</p>
+      </div>
+      <span class="service-tag tag-pwa">PWA</span>
+    </div>
+    <div class="section-body">
+      <ol class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <p>Acesse <a href="https://favicon.io/favicon-generator/" target="_blank">favicon.io/favicon-generator</a> e configure:</p>
+        </li>
+      </ol>
+
+      <table class="vars-table" style="margin:12px 0">
+        <thead><tr><th>Campo</th><th>Valor sugerido</th></tr></thead>
+        <tbody>
+          <tr><td>Text</td><td class="var-desc"><strong>F</strong> (ou 💰)</td></tr>
+          <tr><td>Background</td><td class="var-desc"><strong>Rounded</strong></td></tr>
+          <tr><td>Background Color</td><td class="var-desc"><span style="display:inline-block;width:12px;height:12px;background:#7c3aed;border-radius:3px;margin-right:6px;vertical-align:middle"></span><strong>#7c3aed</strong></td></tr>
+          <tr><td>Font Color</td><td class="var-desc"><strong>#ffffff</strong></td></tr>
+          <tr><td>Font Size</td><td class="var-desc"><strong>70</strong></td></tr>
+        </tbody>
+      </table>
+
+      <ol class="steps">
+        <li>
+          <div class="step-num">2</div>
+          <p>Clique em <strong>Download</strong>. O zip contém vários tamanhos de ícone.</p>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <p>Renomeie e copie para a pasta <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px">frontend/public/</code>:</p>
+        </li>
+      </ol>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">Arquivos necessários</span>
+        </div>
+        <pre><span class="hl-comment"># Renomear e colocar em frontend/public/</span>
+android-chrome-192x192.png  →  <span class="hl-value">icon-192.png</span>
+android-chrome-512x512.png  →  <span class="hl-value">icon-512.png</span>
+favicon.ico                 →  <span class="hl-value">favicon.ico</span></pre>
+      </div>
+      <ol class="steps" style="margin-top:12px">
+        <li>
+          <div class="step-num">4</div>
+          <p>Faça commit e push. O Vercel vai redeployar automaticamente com os ícones.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Instalar no celular ── -->
+  <div class="final-card" id="step5">
+    <div style="font-size:48px;margin-bottom:16px">📱</div>
+    <h3>Instalar no Celular</h3>
+    <p>Depois que o deploy estiver pronto, abra a URL do Vercel no celular e adicione à tela inicial. O app vai parecer nativo — sem barra do navegador.</p>
+
+    <div class="install-cards">
+      <div class="install-card">
+        <div class="os">🤖</div>
+        <h4>Android (Chrome)</h4>
+        <ol>
+          <li>Abra a URL no Chrome</li>
+          <li>Toque em <strong>⋮</strong> (menu)</li>
+          <li>Toque em <strong>Adicionar à tela inicial</strong></li>
+          <li>Confirme o nome e instale</li>
+        </ol>
+      </div>
+      <div class="install-card">
+        <div class="os">🍎</div>
+        <h4>iOS (Safari)</h4>
+        <ol>
+          <li>Abra a URL no Safari</li>
+          <li>Toque no botão <strong>⬆ Compartilhar</strong></li>
+          <li>Role e toque em <strong>Adicionar à Tela de Início</strong></li>
+          <li>Confirme o nome e toque em <strong>Adicionar</strong></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="tip" style="margin-top:20px;text-align:left">
+      <span class="tip-icon">💡</span>
+      <span>As <strong>notificações push</strong> funcionam em Android. No iOS, só funcionam a partir do iOS 16.4 quando o app é instalado via Safari (não pelo Chrome).</span>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre')
+    const text = pre.innerText
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ Copiado!'
+      btn.classList.add('copied')
+      setTimeout(() => {
+        btn.textContent = 'Copiar'
+        btn.classList.remove('copied')
+      }, 2000)
+    })
+  }
+</script>
+</body>
+</html>

@@ -1,14 +1,14 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { Loader2, TrendingUp, TrendingDown, Wallet, Filter } from 'lucide-react'
 import api from '../lib/api'
-import type { MonthResponse } from '../types'
+import type { MonthResponse, ExpenseCategory } from '../types'
 import { formatCurrency, MONTH_NAMES, currentYear, CATEGORY_LABELS } from '../lib/utils'
-import type { ExpenseCategory } from '../types'
+import StatCard from '../components/StatCard'
 
 // ── Paleta de cores ───────────────────────────────────────────────────────────
 const COLORS = [
@@ -21,6 +21,7 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   EDUCACAO:       '#8b5cf6',
   TRANSPORTE:     '#06b6d4',
   ALIMENTACAO:    '#f97316',
+  LAZER:          '#d946ef',
   CARTAO_CREDITO: '#ec4899',
   IMPOSTOS:       '#ef4444',
   TELEFONIA:      '#14b8a6',
@@ -31,8 +32,6 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
 // ── Formatadores ──────────────────────────────────────────────────────────────
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
-
-const fmtTooltip = (v: number) => [formatCurrency(v), '']
 
 // ── Tooltip customizado ───────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -213,22 +212,10 @@ export default function ChartsPage() {
         <>
           {/* ── KPIs ── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Receitas Totais',   value: totalIncome,  icon: <TrendingUp size={20} />,  gradient: 'from-emerald-500 to-teal-600' },
-              { label: 'Despesas Totais',   value: totalExpense, icon: <TrendingDown size={20} />, gradient: 'from-rose-500 to-pink-600'    },
-              { label: 'Saldo do Ano',      value: totalBalance, icon: <Wallet size={20} />,       gradient: totalBalance >= 0 ? 'from-violet-500 to-indigo-600' : 'from-orange-500 to-red-600' },
-              { label: 'Média Mensal Gasto', value: avgExpense,  icon: <Filter size={20} />,       gradient: 'from-cyan-500 to-blue-600'    },
-            ].map(k => (
-              <div key={k.label} className={`rounded-2xl p-5 text-white bg-gradient-to-br ${k.gradient} shadow-lg`}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide opacity-75 mb-1">{k.label}</p>
-                    <p className="text-xl font-bold">{fmtCurrency(k.value)}</p>
-                  </div>
-                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">{k.icon}</div>
-                </div>
-              </div>
-            ))}
+            <StatCard label="Receitas Totais"    value={fmtCurrency(totalIncome)}  gradient="from-emerald-500 to-teal-600" icon={<TrendingUp size={20} />} />
+            <StatCard label="Despesas Totais"    value={fmtCurrency(totalExpense)} gradient="from-rose-500 to-pink-600"    icon={<TrendingDown size={20} />} />
+            <StatCard label="Saldo do Ano"       value={fmtCurrency(totalBalance)} gradient={totalBalance >= 0 ? 'from-violet-500 to-indigo-600' : 'from-orange-500 to-red-600'} icon={<Wallet size={20} />} />
+            <StatCard label="Média Mensal Gasto" value={fmtCurrency(avgExpense)}   gradient="from-cyan-500 to-blue-600"    icon={<Filter size={20} />} />
           </div>
 
           {/* ── Receitas vs Despesas (área) ── */}
@@ -292,7 +279,7 @@ export default function ChartsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                   <XAxis type="number" tickFormatter={fmtCurrency} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} width={120} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                   <Bar dataKey="total" name="Total" radius={[0, 6, 6, 0]}>
                     {topExpenses.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -315,7 +302,7 @@ export default function ChartsPage() {
                         <Cell key={i} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                    <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex-1 space-y-1.5 self-center overflow-y-auto max-h-52 pr-1">

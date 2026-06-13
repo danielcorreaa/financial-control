@@ -1,4 +1,10 @@
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 import type { ExpenseCategory, IncomeType, MonthStatus, ProjectStatus } from '../types'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 export const MONTH_NAMES = [
   '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -10,6 +16,7 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   EDUCACAO:      'Educação',
   TRANSPORTE:    'Transporte',
   ALIMENTACAO:   'Alimentação',
+  LAZER:         'Lazer',
   CARTAO_CREDITO:'Cartão de Crédito',
   IMPOSTOS:      'Impostos',
   TELEFONIA:     'Telefonia',
@@ -23,7 +30,8 @@ export const CATEGORY_BADGE: Record<ExpenseCategory, string> = {
   EDUCACAO:      'badge-violet',
   TRANSPORTE:    'badge-cyan',
   ALIMENTACAO:   'badge-orange',
-  CARTAO_CREDITO:'badge-pink',
+  LAZER:         'badge-pink',
+  CARTAO_CREDITO:'badge-red',
   IMPOSTOS:      'badge-red',
   TELEFONIA:     'badge-teal',
   INTERNET:      'badge-indigo',
@@ -36,7 +44,8 @@ export const CATEGORY_COLOR: Record<ExpenseCategory, string> = {
   EDUCACAO:       'bg-violet-500',
   TRANSPORTE:     'bg-cyan-500',
   ALIMENTACAO:    'bg-orange-500',
-  CARTAO_CREDITO: 'bg-pink-500',
+  LAZER:          'bg-pink-500',
+  CARTAO_CREDITO: 'bg-red-500',
   IMPOSTOS:       'bg-rose-500',
   TELEFONIA:      'bg-teal-500',
   INTERNET:       'bg-indigo-500',

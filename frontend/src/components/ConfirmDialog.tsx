@@ -1,4 +1,11 @@
-import Modal from './Modal'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 interface Props {
   title: string
@@ -10,14 +17,19 @@ interface Props {
 
 export default function ConfirmDialog({ title, message, onConfirm, onCancel, danger = true }: Props) {
   return (
-    <Modal title={title} onClose={onCancel} size="sm">
-      <p className="text-gray-600 text-sm mb-6">{message}</p>
-      <div className="flex justify-end gap-3">
-        <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
-        <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm}>
-          Confirmar
-        </button>
-      </div>
-    </Modal>
+    <Dialog open onOpenChange={open => { if (!open) onCancel() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-slate-400">{message}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex justify-end gap-3">
+          <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
+          <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm}>
+            Confirmar
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -8,6 +8,7 @@ public enum ExpenseCategory {
     EDUCACAO,
     TRANSPORTE,
     ALIMENTACAO,
+    LAZER,
     CARTAO_CREDITO,
     IMPOSTOS,
     TELEFONIA,

@@ -11,16 +11,21 @@ import com.financial_control.financial_control.application.month.dto.CreateMonth
 import com.financial_control.financial_control.application.month.dto.MonthResponse;
 import com.financial_control.financial_control.application.month.dto.MonthSummaryResponse;
 import com.financial_control.financial_control.application.month.dto.UpdateMonthCommand;
+import com.financial_control.financial_control.application.recurring.RecurringExpenseService;
 import com.financial_control.financial_control.domain.expense.Expense;
 import com.financial_control.financial_control.domain.expense.ExpenseStatus;
 import com.financial_control.financial_control.domain.income.Income;
 import com.financial_control.financial_control.domain.month.FinancialMonth;
 import com.financial_control.financial_control.domain.month.FinancialMonthRepository;
+import com.financial_control.financial_control.domain.recurring.RecurringExpense;
 import com.financial_control.financial_control.infrastructure.exception.DuplicateResourceException;
 import com.financial_control.financial_control.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.Month;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,9 +36,12 @@ import java.util.List;
 public class FinancialMonthService {
 
     private final FinancialMonthRepository repository;
+    private final RecurringExpenseService recurringExpenseService;
 
-    public FinancialMonthService(FinancialMonthRepository repository) {
+    public FinancialMonthService(FinancialMonthRepository repository,
+                                 RecurringExpenseService recurringExpenseService) {
         this.repository = repository;
+        this.recurringExpenseService = recurringExpenseService;
     }
 
     // -------------------------------------------------------------------------
@@ -183,6 +191,33 @@ public class FinancialMonthService {
         return findMonthOrThrow(monthId).getIncomes().stream()
                 .map(IncomeResponse::from)
                 .toList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Importação de despesas recorrentes
+    // -------------------------------------------------------------------------
+
+    public List<ExpenseResponse> importRecurringExpenses(String monthId) {
+        FinancialMonth financialMonth = findMonthOrThrow(monthId);
+        int year     = financialMonth.getYear();
+        int monthNum = financialMonth.getMonth().getValue();
+
+        List<RecurringExpense> templates = recurringExpenseService.findAllActive();
+        List<ExpenseResponse> created = new ArrayList<>();
+
+        for (RecurringExpense rec : templates) {
+            LocalDate dueDate = null;
+            if (rec.getDayOfMonth() != null) {
+                int lastDay = YearMonth.of(year, monthNum).lengthOfMonth();
+                int day = Math.min(rec.getDayOfMonth(), lastDay);
+                dueDate = LocalDate.of(year, monthNum, day);
+            }
+            Expense expense = financialMonth.addExpense(
+                    rec.getName(), rec.getCategory(), rec.getAmount(), dueDate, null);
+            created.add(ExpenseResponse.from(expense));
+        }
+        repository.save(financialMonth);
+        return created;
     }
 
     // -------------------------------------------------------------------------
