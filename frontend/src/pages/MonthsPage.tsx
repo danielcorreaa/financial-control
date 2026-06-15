@@ -25,7 +25,7 @@ function CreateMonthModal({ onClose, onCreated }: { onClose: () => void; onCreat
   return (
     <Modal title="Novo Mês Financeiro" onClose={onClose} size="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Mês</label>
             <select className="input" value={month} onChange={e => setMonth(Number(e.target.value))}>

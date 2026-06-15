@@ -188,6 +188,16 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   iOS — Prevenir zoom automático em campos de formulário
+   iOS Safari faz zoom quando font-size < 16px ao focar input
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    DARK MODE — Global Tailwind utility overrides
    Evita precisar adicionar dark: em cada arquivo TSX
    ═══════════════════════════════════════════════════════════ */
