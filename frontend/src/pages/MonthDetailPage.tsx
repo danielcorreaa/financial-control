@@ -72,7 +72,7 @@ function ExpenseForm({ monthId, expense, onClose, onSaved }:
           <label className="label">Nome *</label>
           <input className="input" value={name} onChange={e => setName(e.target.value)} required placeholder="Ex: Aluguel" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Categoria *</label>
             <select className="input" value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>
@@ -140,7 +140,7 @@ function IncomeForm({ monthId, income, onClose, onSaved }:
           <label className="label">Descrição *</label>
           <input className="input" value={description} onChange={e => setDescription(e.target.value)} required placeholder="Ex: Salário" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Tipo *</label>
             <select className="input" value={type} onChange={e => setType(e.target.value as IncomeType)}>
@@ -330,21 +330,21 @@ export default function MonthDetailPage() {
           </div>
           {month.notes && <p className="text-gray-500 text-sm mt-0.5">{month.notes}</p>}
         </div>
-        <div className="flex items-center gap-2 print-hide">
+        <div className="flex items-center gap-1.5 sm:gap-2 print-hide">
           <button className="btn-secondary btn-sm" onClick={() => exportCSV(month)} title="Exportar CSV">
-            <Download size={14} /> CSV
+            <Download size={14} /> <span className="hidden sm:inline">CSV</span>
           </button>
           <button className="btn-secondary btn-sm" onClick={() => window.print()} title="Imprimir / Salvar PDF">
-            <Printer size={14} /> PDF
+            <Printer size={14} /> <span className="hidden sm:inline">PDF</span>
           </button>
           {!isClosed && (
-            <button className="btn-secondary btn-sm" onClick={() => setCloseConfirm(true)}>
-              <Lock size={14} /> Fechar Mês
+            <button className="btn-secondary btn-sm" onClick={() => setCloseConfirm(true)} title="Fechar Mês">
+              <Lock size={14} /> <span className="hidden sm:inline">Fechar Mês</span>
             </button>
           )}
           {isClosed && (
-            <button className="btn-warning btn-sm" onClick={() => setReopenConfirm(true)}>
-              <Unlock size={14} /> Reabrir Mês
+            <button className="btn-warning btn-sm" onClick={() => setReopenConfirm(true)} title="Reabrir Mês">
+              <Unlock size={14} /> <span className="hidden sm:inline">Reabrir Mês</span>
             </button>
           )}
         </div>

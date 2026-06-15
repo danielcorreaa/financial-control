@@ -50,7 +50,8 @@ export default function Layout() {
   const Sidebar = () => (
     <aside className="flex flex-col h-full w-64 bg-sidebar text-white">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
+      <div className="flex items-center gap-3 px-6 pb-6 border-b border-white/10"
+           style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}>
         <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
           <TrendingUp size={20} className="text-white" />
         </div>
@@ -124,7 +125,10 @@ export default function Layout() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-4 bg-white/95 dark:bg-[#0d1117]/95 backdrop-blur border-b border-gray-100 dark:border-white/5 sticky top-0 z-10 shadow-sm shadow-violet-100/50">
+        <header
+          className="lg:hidden flex items-center gap-3 px-4 pb-4 bg-white/95 dark:bg-[#0d1117]/95 backdrop-blur border-b border-gray-100 dark:border-white/5 sticky top-0 z-10 shadow-sm shadow-violet-100/50"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+        >
           <button onClick={() => setOpen(true)}>
             <Menu size={22} className="text-gray-600" />
           </button>
@@ -136,7 +140,10 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-8 overflow-auto bg-[#f3f4f8] dark:bg-[#0d1117]">
+        <main
+          className="flex-1 p-4 lg:p-8 overflow-auto bg-[#f3f4f8] dark:bg-[#0d1117]"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        >
           <Outlet />
         </main>
       </div>

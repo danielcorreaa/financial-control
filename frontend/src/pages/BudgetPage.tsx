@@ -92,33 +92,35 @@ export default function BudgetPage() {
           )}
 
           {/* Category rows */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {CATEGORIES.map(([cat, label]) => (
-              <div key={cat} className="flex items-center gap-3">
-                <span className={`${CATEGORY_BADGE[cat]} flex-shrink-0 w-32 justify-center text-center`}>
+              <div key={cat} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                <span className={`${CATEGORY_BADGE[cat]} self-start sm:flex-shrink-0 sm:w-36 sm:text-center sm:justify-center whitespace-nowrap`}>
                   {label}
                 </span>
-                <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm font-medium pointer-events-none">
-                    R$
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Sem limite"
-                    className="input pl-9"
-                    value={limits[cat] ?? ''}
-                    onChange={e => setLimits(prev => ({ ...prev, [cat]: e.target.value }))}
-                  />
+                <div className="flex items-center gap-2 flex-1 w-full">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm font-medium pointer-events-none">
+                      R$
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Sem limite"
+                      className="input pl-9"
+                      value={limits[cat] ?? ''}
+                      onChange={e => setLimits(prev => ({ ...prev, [cat]: e.target.value }))}
+                    />
+                  </div>
+                  {limits[cat] && (
+                    <button
+                      onClick={() => setLimits(prev => { const n = { ...prev }; delete n[cat]; return n })}
+                      className="text-gray-300 dark:text-slate-600 hover:text-rose-400 transition-colors text-lg leading-none flex-shrink-0"
+                      title="Remover limite"
+                    >×</button>
+                  )}
                 </div>
-                {limits[cat] && (
-                  <button
-                    onClick={() => setLimits(prev => { const n = { ...prev }; delete n[cat]; return n })}
-                    className="text-gray-300 dark:text-slate-600 hover:text-rose-400 transition-colors text-lg leading-none flex-shrink-0"
-                    title="Remover limite"
-                  >×</button>
-                )}
               </div>
             ))}
           </div>
