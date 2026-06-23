@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Calendar, FolderKanban, LogOut, TrendingUp, Menu, X,
-  Wallet, BarChart2, RefreshCw, Moon, Sun, Target,
+  Wallet, BarChart2, RefreshCw, Moon, Sun, Target, CreditCard, PieChart,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import NotificationBell from './NotificationBell'
@@ -14,6 +14,8 @@ const navItems = [
   { to: '/months',    label: 'Meses',       icon: Calendar,        end: false },
   { to: '/recurring', label: 'Recorrentes', icon: RefreshCw,       end: false },
   { to: '/budget',    label: 'Orçamento',   icon: Target,          end: false },
+  { to: '/faturas',   label: 'Faturas',     icon: CreditCard,      end: false },
+  { to: '/analises',  label: 'Análises',    icon: PieChart,        end: false },
   { to: '/proventos', label: 'Proventos',   icon: Wallet,          end: false },
   { to: '/charts',    label: 'Gráficos',    icon: BarChart2,       end: false },
   { to: '/projects',  label: 'Projetos',    icon: FolderKanban,    end: false },

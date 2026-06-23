@@ -129,6 +129,44 @@ export interface RecurringExpense {
   active: boolean
 }
 
+// ─── Card Invoices ───────────────────────────────────────────────────────────
+
+export type CardBank = 'BRADESCO' | 'CAIXA' | 'ITAU' | 'MERCADO_PAGO' | 'RIACHUELO' | 'OUTRO'
+
+export interface CardInvoice {
+  id: string
+  bank: CardBank
+  bankLabel: string
+  cardName?: string
+  dueDate: string
+  totalAmount: number
+  monthId: string
+  expenseId: string
+  createdAt: string
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface MonthCategoryTotals {
+  month: number
+  year: number
+  monthName: string
+  totals: Partial<Record<ExpenseCategory, number>>
+  grandTotal: number
+}
+
+export interface InstallmentDTO {
+  expenseId: string
+  monthId: string
+  name: string
+  monthlyAmount: number
+  current: number
+  total: number
+  remaining: number
+  currentDueDate?: string
+  endDate?: string
+}
+
 // ─── Salary Config ───────────────────────────────────────────────────────────
 
 export interface SalaryDiscount {
