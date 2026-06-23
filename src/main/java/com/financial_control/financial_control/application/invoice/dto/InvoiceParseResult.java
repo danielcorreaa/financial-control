@@ -4,5 +4,6 @@ import java.util.List;
 
 public record InvoiceParseResult(
         String invoiceDueDate,
+        Double invoiceTotalAmount,
         List<ParsedTransactionDTO> transactions
 ) {}

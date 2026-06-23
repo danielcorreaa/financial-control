@@ -15,6 +15,7 @@ interface ParsedTransaction {
 
 interface InvoiceParseResult {
   invoiceDueDate: string | null
+  invoiceTotalAmount: number | null
   transactions: ParsedTransaction[]
 }
 

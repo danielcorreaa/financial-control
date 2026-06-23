@@ -17,6 +17,7 @@ const BANKS: { value: CardBank; label: string; color: string }[] = [
 
 interface ParsedPDF {
   invoiceDueDate: string | null
+  invoiceTotalAmount: number | null
   transactions: { amount: number }[]
 }
 
@@ -46,10 +47,14 @@ export default function AddInvoiceModal({
       const { data } = await api.post<ParsedPDF>('/invoices/parse', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      const total = data.transactions.reduce((s, t) => s + t.amount, 0)
+      // Prefer the official total extracted from the PDF footer ("Total da fatura em real")
+      // to avoid summing false positives from two-column layout
+      const total = data.invoiceTotalAmount
+        ?? data.transactions.reduce((s, t) => s + t.amount, 0)
       setAmount(total.toFixed(2))
       if (data.invoiceDueDate) setDueDate(data.invoiceDueDate)
-      toast.success(`PDF lido: ${data.transactions.length} transações, total ${formatCurrency(total)}`)
+      const source = data.invoiceTotalAmount ? 'total oficial da fatura' : `${data.transactions.length} transações detectadas`
+      toast.success(`PDF lido: ${formatCurrency(total)} (${source})`)
     } catch {
       toast.error('Erro ao ler o PDF. Verifique se é uma fatura Bradesco.')
     } finally {

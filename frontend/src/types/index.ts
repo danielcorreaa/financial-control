@@ -13,7 +13,7 @@ export interface AuthResponse {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export type ExpenseCategory =
-  | 'MORADIA' | 'EDUCACAO' | 'TRANSPORTE' | 'ALIMENTACAO' | 'LAZER'
+  | 'MORADIA' | 'EDUCACAO' | 'TRANSPORTE' | 'ALIMENTACAO' | 'SAUDE' | 'LAZER'
   | 'CARTAO_CREDITO' | 'IMPOSTOS' | 'TELEFONIA' | 'INTERNET' | 'OUTROS'
 
 export type ExpenseStatus = 'PENDENTE' | 'PAGO'

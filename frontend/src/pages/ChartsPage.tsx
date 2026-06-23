@@ -21,6 +21,7 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   EDUCACAO:       '#8b5cf6',
   TRANSPORTE:     '#06b6d4',
   ALIMENTACAO:    '#f97316',
+  SAUDE:          '#22c55e',
   LAZER:          '#d946ef',
   CARTAO_CREDITO: '#ec4899',
   IMPOSTOS:       '#ef4444',

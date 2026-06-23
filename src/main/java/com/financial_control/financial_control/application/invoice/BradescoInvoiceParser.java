@@ -17,18 +17,24 @@ import java.util.regex.Pattern;
 @Service
 public class BradescoInvoiceParser {
 
-    // Linha de transação: DD/MM <descrição> <valor BRL> ["-"]
-    // O ".+" greedy faz backtrack para pegar o ÚLTIMO valor no final
+    // Linha de transação: DD/MM <descrição com possível parcela X/Y> <CIDADE> <R$>
+    // Limita o comprimento da linha para evitar mistura com coluna direita do PDF
     private static final Pattern TX_LINE = Pattern.compile(
-            "^(\\d{2}/\\d{2})\\s+(.+)\\s+(\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*(-?)\\s*$"
+            "^(\\d{2}/\\d{2})\\s+(.{3,80})\\s+(\\d{1,3}(?:\\.\\d{3})*,\\d{2})\\s*(-?)\\s*$"
     );
 
-    // Data completa DD/MM/YYYY (para vencimento)
+    // Data completa DD/MM/YYYY
     private static final Pattern FULL_DATE = Pattern.compile("(\\d{2})/(\\d{2})/(\\d{4})");
+
+    // Total oficial da fatura (rodapé da última página)
+    // Ex: "Total da fatura em real 3.316,94" ou "Total para DANIEL ... 3.316,94"
+    private static final Pattern TOTAL_FATURA = Pattern.compile(
+            "Total(?:\\s+da\\s+fatura\\s+em\\s+real|\\s+para\\s+[A-Z][A-Z\\s]+)\\s+(\\d{1,3}(?:\\.\\d{3})*,\\d{2})"
+    );
 
     // Linhas a ignorar mesmo que comecem com DD/MM
     private static final Pattern SKIP_PATTERN = Pattern.compile(
-            "PAGTO|PAGAMENTO|ESTORNO|DEB EM C|PAGTO\\.|PAG\\."
+            "PAGTO|PAGAMENTO|ESTORNO|DEB EM C|PAG\\s*\\.?\\s+POR"
     );
 
     public InvoiceParseResult parse(MultipartFile file) throws IOException {
@@ -36,7 +42,8 @@ public class BradescoInvoiceParser {
         String text;
         try (PDDocument doc = PDDocument.load(bytes)) {
             PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true);
+            // NOT sorting by position avoids mixing left/right column text
+            stripper.setSortByPosition(false);
             text = stripper.getText(doc);
         } catch (Exception e) {
             throw new IOException("Nao foi possivel ler o PDF: " + e.getMessage(), e);
@@ -44,19 +51,41 @@ public class BradescoInvoiceParser {
         return parseText(text);
     }
 
-    private InvoiceParseResult parseText(String text) {
+    InvoiceParseResult parseText(String text) {
         String[] lines = text.split("\\r?\\n");
 
         String invoiceDueDate = detectDueDate(lines);
+        Double invoiceTotal = detectOfficialTotal(lines);
         List<ParsedTransactionDTO> transactions = extractTransactions(lines);
 
-        return new InvoiceParseResult(invoiceDueDate, transactions);
+        return new InvoiceParseResult(invoiceDueDate, invoiceTotal, transactions);
+    }
+
+    private Double detectOfficialTotal(String[] lines) {
+        // Look for "Total da fatura em real X" or "Total para NAME X" (last page)
+        for (String raw : lines) {
+            String line = raw.trim();
+            Matcher m = TOTAL_FATURA.matcher(line);
+            if (m.find()) {
+                return parseAmount(m.group(1));
+            }
+        }
+        // Fallback: look for "(=)Total ... X" in the summary section
+        for (String raw : lines) {
+            String line = raw.trim();
+            if (line.startsWith("(=)Total") || line.startsWith("(=) Total")) {
+                Matcher m = Pattern.compile("(\\d{1,3}(?:\\.\\d{3})*,\\d{2})").matcher(line);
+                if (m.find()) {
+                    return parseAmount(m.group(1));
+                }
+            }
+        }
+        return null;
     }
 
     private List<ParsedTransactionDTO> extractTransactions(String[] lines) {
         List<ParsedTransactionDTO> result = new ArrayList<>();
 
-        // Busca transações em qualquer parte do PDF — não depende de detectar a seção
         for (String raw : lines) {
             String line = raw.trim();
             if (line.isEmpty()) continue;
@@ -71,15 +100,14 @@ public class BradescoInvoiceParser {
 
             if (isCredit) continue;
 
-            // Pula linhas de pagamento, estorno, cabeçalho
+            // Pula pagamentos, estornos
             if (SKIP_PATTERN.matcher(description.toUpperCase()).find()) continue;
 
             // Pula totalizadores
             if (description.toUpperCase().startsWith("TOTAL")) continue;
 
-            // Pula linhas com valores muito altos que são totalização da fatura
             double amount = parseAmount(amountStr);
-            if (amount <= 0 || amount >= 10_000) continue;
+            if (amount <= 0 || amount >= 5_000) continue;
 
             result.add(new ParsedTransactionDTO(
                     date, cleanDescription(description), amount, guessCategory(description)
@@ -89,15 +117,9 @@ public class BradescoInvoiceParser {
         return result;
     }
 
-    /**
-     * Remove parcela info do tipo "11/12" ou "03/07" do final da descrição,
-     * e remove o nome da cidade em maiúsculas que aparece no final.
-     */
     private String cleanDescription(String desc) {
-        // Remove trailing city name pattern (tudo maiúsculo no final)
+        // Remove trailing city name (all uppercase words at end)
         String cleaned = desc.replaceAll("\\s+[A-Z]{2,}(?:\\s+[A-Z]{2,})*\\s*$", "").trim();
-        // Remove parcel notation like " 11/12" or " 03/07"
-        cleaned = cleaned.replaceAll("\\s+\\d{2}/\\d{2}\\s*$", "").trim();
         return cleaned.isEmpty() ? desc : cleaned;
     }
 
@@ -106,34 +128,25 @@ public class BradescoInvoiceParser {
         for (String raw : lines) {
             String line = raw.trim();
 
-            if (nextIsDate) {
-                Matcher m = FULL_DATE.matcher(line);
-                if (m.find()) {
-                    return m.group(3) + "-" + m.group(2) + "-" + m.group(1);
-                }
-                // Keep looking for 2 more lines
-            }
-
             if (line.contains("Vencimento")) {
-                // Try same line first
                 Matcher m = FULL_DATE.matcher(line);
                 if (m.find()) {
                     return m.group(3) + "-" + m.group(2) + "-" + m.group(1);
                 }
                 nextIsDate = true;
-            } else if (!line.isEmpty()) {
-                // Only reset if we see a non-empty line that's not the date
-                if (nextIsDate) {
-                    Matcher m = FULL_DATE.matcher(line);
-                    if (m.find()) {
-                        return m.group(3) + "-" + m.group(2) + "-" + m.group(1);
-                    }
-                    nextIsDate = false;
+                continue;
+            }
+
+            if (nextIsDate && !line.isEmpty()) {
+                Matcher m = FULL_DATE.matcher(line);
+                if (m.find()) {
+                    return m.group(3) + "-" + m.group(2) + "-" + m.group(1);
                 }
+                nextIsDate = false;
             }
         }
 
-        // Fallback: find any DD/MM/YYYY in the document
+        // Fallback: first DD/MM/YYYY found
         for (String raw : lines) {
             Matcher m = FULL_DATE.matcher(raw);
             if (m.find()) {
@@ -143,7 +156,6 @@ public class BradescoInvoiceParser {
                 }
             }
         }
-
         return null;
     }
 
@@ -159,40 +171,49 @@ public class BradescoInvoiceParser {
         String d = description.toLowerCase();
 
         if (matches(d, "uber", "99app", "cabify", "taxi", "estacionamento", "pedagio",
-                "shell", "ipiranga", "petrobras", "combustivel", "gasolina", "auto posto")) {
+                "shell", "ipiranga", "petrobras", "combustivel", "gasolina", "auto posto",
+                "bus servicos", "clickbus", "rodo stop")) {
             return ExpenseCategory.TRANSPORTE;
         }
 
         if (matches(d, "ifood", "ifd*", "restaurante", "lanchonete", "padaria", "pizza",
                 "churrascaria", "sushi", "supermer", "mercado", "hortifruti", "acougue",
                 "deli", "sanduich", "market", "atacadao", "carrefour", "extra ",
-                "sonda", "hiper", "lrc", "cafe", "lancheria", "kg ", "burguer", "mc ")) {
+                "hiper", "lrc", "cafe", "lancheria", "burguer", "mc ", "casa hirata",
+                "supermercados avenida", "lanches")) {
             return ExpenseCategory.ALIMENTACAO;
         }
 
-        if (matches(d, "airbnb", "cinema", "cinemark", "teatro", "danceteria", "netflix",
+        if (matches(d, "airbnb", "cinema", "cinemark", "teatro", "netflix",
                 "spotify", "disney", "hbo", "hotel", "pousada", "viagem", "booking",
-                "loteria", "loterico", "balada", "bar ", "show ", "ingresso")) {
+                "loteria", "loterico", "balada", "bar ", "show ", "ingresso",
+                "nintendo", "playstation", "sony", "steam", "oldflix", "mobifacil")) {
             return ExpenseCategory.LAZER;
         }
 
-        if (matches(d, "alura", "udemy", "coursera", "escola", "faculdade", "jusbrasil",
-                "descomplica", "duolingo", "curso ", "educacao", "ensino", "colegio")) {
+        if (matches(d, "alura", "udemy", "coursera", "escola", "faculdade",
+                "descomplica", "duolingo", "curso ", "livro", "livraria",
+                "dpaschoal", "lins comercio de liv")) {
             return ExpenseCategory.EDUCACAO;
         }
 
         if (matches(d, "claro", "vivo ", "tim ", "oi ", "nextel", "net ", "telefonica",
-                "internet", "fibra")) {
+                "internet", "fibra", "vindi ")) {
             return ExpenseCategory.INTERNET;
         }
 
         if (matches(d, "aluguel", "condominio", "energia ", "eletrica", "enel", "cemig",
-                "celpe", "sabesp", "copasa", "agua ", "gas ")) {
+                "celpe", "sabesp", "copasa", "agua ", "gas ", "anjos colchoes")) {
             return ExpenseCategory.MORADIA;
         }
 
-        if (matches(d, "imposto", "detran", "ipva", "iptu", "receita federal", "tributo")) {
+        if (matches(d, "imposto", "detran", "ipva", "iptu", "receita federal")) {
             return ExpenseCategory.IMPOSTOS;
+        }
+
+        if (matches(d, "odontologia", "farmacia", "drogaria", "hospital", "clinica",
+                "medico", "exame", "laboratorio", "saude")) {
+            return ExpenseCategory.SAUDE;
         }
 
         return ExpenseCategory.OUTROS;
