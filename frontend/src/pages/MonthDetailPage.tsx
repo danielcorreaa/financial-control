@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Pencil, Trash2, CheckCircle, XCircle, Lock, Unlock, Loader2, RefreshCw,
-  Download, Printer,
+  Download, Printer, FileUp,
 } from 'lucide-react'
 import api from '../lib/api'
 import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType, CategoryBudget } from '../types'
+import ImportInvoiceModal from '../components/ImportInvoiceModal'
 import {
   formatCurrency, formatDate, MONTH_NAMES,
   CATEGORY_LABELS, CATEGORY_BADGE, INCOME_TYPE_LABELS, INCOME_TYPE_BADGE
@@ -218,13 +219,14 @@ export default function MonthDetailPage() {
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes'>('expenses')
   const [expFilter, setExpFilter] = useState<'ALL' | 'PAGO' | 'PENDENTE'>('ALL')
 
-  const [expenseForm, setExpenseForm] = useState<{ open: boolean; data?: Expense }>({ open: false })
-  const [incomeForm,  setIncomeForm]  = useState<{ open: boolean; data?: Income  }>({ open: false })
-  const [payDialog, setPayDialog]     = useState<Expense | null>(null)
-  const [delExpense, setDelExpense]   = useState<Expense | null>(null)
-  const [delIncome,  setDelIncome]    = useState<Income  | null>(null)
+  const [expenseForm, setExpenseForm]   = useState<{ open: boolean; data?: Expense }>({ open: false })
+  const [incomeForm,  setIncomeForm]    = useState<{ open: boolean; data?: Income  }>({ open: false })
+  const [payDialog, setPayDialog]       = useState<Expense | null>(null)
+  const [delExpense, setDelExpense]     = useState<Expense | null>(null)
+  const [delIncome,  setDelIncome]      = useState<Income  | null>(null)
   const [closeConfirm, setCloseConfirm] = useState(false)
   const [reopenConfirm, setReopenConfirm] = useState(false)
+  const [importInvoice, setImportInvoice] = useState(false)
 
   function load() {
     if (!id) return
@@ -331,6 +333,11 @@ export default function MonthDetailPage() {
           {month.notes && <p className="text-gray-500 text-sm mt-0.5">{month.notes}</p>}
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 print-hide">
+          {!isClosed && (
+            <button className="btn-secondary btn-sm" onClick={() => setImportInvoice(true)} title="Importar fatura PDF">
+              <FileUp size={14} /> <span className="hidden sm:inline">Importar Fatura</span>
+            </button>
+          )}
           <button className="btn-secondary btn-sm" onClick={() => exportCSV(month)} title="Exportar CSV">
             <Download size={14} /> <span className="hidden sm:inline">CSV</span>
           </button>
@@ -582,6 +589,13 @@ export default function MonthDetailPage() {
       {delIncome  && <ConfirmDialog title="Remover Receita"  message={`Remover "${delIncome.description}"?`} onConfirm={handleDelIncome}  onCancel={() => setDelIncome(null)} />}
       {closeConfirm && <ConfirmDialog title="Fechar Mês" message="Meses fechados não permitem mais edições. Deseja continuar?" onConfirm={handleClose} onCancel={() => setCloseConfirm(false)} />}
       {reopenConfirm && <ConfirmDialog title="Reabrir Mês" message="Deseja reabrir este mês para novas edições?" onConfirm={handleReopen} onCancel={() => setReopenConfirm(false)} danger={false} />}
+      {importInvoice && id && (
+        <ImportInvoiceModal
+          monthId={id}
+          onClose={() => setImportInvoice(false)}
+          onImported={load}
+        />
+      )}
     </div>
   )
 }
