@@ -50,7 +50,8 @@ public class CardInvoiceService {
 
         CardInvoice invoice = new CardInvoice(
                 command.bank(), command.cardName(), command.dueDate(),
-                command.totalAmount(), financialMonth.getId(), expense.getId()
+                command.totalAmount(), financialMonth.getId(), expense.getId(),
+                command.transactions()
         );
         return CardInvoiceResponse.from(invoiceRepository.save(invoice));
     }

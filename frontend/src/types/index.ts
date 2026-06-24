@@ -133,6 +133,13 @@ export interface RecurringExpense {
 
 export type CardBank = 'BRADESCO' | 'CAIXA' | 'ITAU' | 'MERCADO_PAGO' | 'RIACHUELO' | 'OUTRO'
 
+export interface ParsedTransaction {
+  originalDate: string
+  description: string
+  amount: number
+  suggestedCategory: ExpenseCategory
+}
+
 export interface CardInvoice {
   id: string
   bank: CardBank
@@ -142,6 +149,7 @@ export interface CardInvoice {
   totalAmount: number
   monthId: string
   expenseId: string
+  transactions: ParsedTransaction[]
   createdAt: string
 }
 

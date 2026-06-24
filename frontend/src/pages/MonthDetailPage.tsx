@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Pencil, Trash2, CheckCircle, XCircle, Lock, Unlock, Loader2, RefreshCw,
-  Download, Printer, FileUp,
+  Download, Printer, FileUp, List,
 } from 'lucide-react'
 import api from '../lib/api'
-import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType, CategoryBudget } from '../types'
+import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType, CategoryBudget, CardInvoice } from '../types'
 import ImportInvoiceModal from '../components/ImportInvoiceModal'
+import InvoiceTransactionsModal from '../components/InvoiceTransactionsModal'
 import {
   formatCurrency, formatDate, MONTH_NAMES,
   CATEGORY_LABELS, CATEGORY_BADGE, INCOME_TYPE_LABELS, INCOME_TYPE_BADGE
@@ -213,9 +214,10 @@ function PayDialog({ monthId, expense, onClose, onSaved }:
 export default function MonthDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [month, setMonth]     = useState<MonthResponse | null>(null)
-  const [budget, setBudget]   = useState<CategoryBudget | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [month, setMonth]         = useState<MonthResponse | null>(null)
+  const [budget, setBudget]       = useState<CategoryBudget | null>(null)
+  const [cardInvoices, setCardInvoices] = useState<CardInvoice[]>([])
+  const [loading, setLoading]     = useState(true)
   const [activeTab, setActiveTab] = useState<'expenses' | 'incomes'>('expenses')
   const [expFilter, setExpFilter] = useState<'ALL' | 'PAGO' | 'PENDENTE'>('ALL')
 
@@ -224,9 +226,10 @@ export default function MonthDetailPage() {
   const [payDialog, setPayDialog]       = useState<Expense | null>(null)
   const [delExpense, setDelExpense]     = useState<Expense | null>(null)
   const [delIncome,  setDelIncome]      = useState<Income  | null>(null)
-  const [closeConfirm, setCloseConfirm] = useState(false)
-  const [reopenConfirm, setReopenConfirm] = useState(false)
-  const [importInvoice, setImportInvoice] = useState(false)
+  const [closeConfirm, setCloseConfirm]     = useState(false)
+  const [reopenConfirm, setReopenConfirm]   = useState(false)
+  const [importInvoice, setImportInvoice]   = useState(false)
+  const [invoiceDetail, setInvoiceDetail]   = useState<CardInvoice | null>(null)
 
   function load() {
     if (!id) return
@@ -234,9 +237,15 @@ export default function MonthDetailPage() {
     api.get<MonthResponse>(`/months/${id}`)
       .then(r => {
         setMonth(r.data)
-        return api.get<CategoryBudget>(`/budgets/${r.data.year}`)
+        return Promise.all([
+          api.get<CategoryBudget>(`/budgets/${r.data.year}`),
+          api.get<CardInvoice[]>('/card-invoices'),
+        ])
       })
-      .then(r => setBudget(r.data))
+      .then(([budgetRes, invoicesRes]) => {
+        setBudget(budgetRes.data)
+        setCardInvoices(invoicesRes.data)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
@@ -304,6 +313,11 @@ export default function MonthDetailPage() {
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 size={36} className="animate-spin text-violet-500" /></div>
   if (!month)  return <p className="text-center text-gray-400 py-20">Mês não encontrado.</p>
+
+  // Map expenseId → CardInvoice for quick lookup
+  const invoiceByExpenseId = Object.fromEntries(
+    cardInvoices.map(inv => [inv.expenseId, inv])
+  )
 
   const totalE   = month.expenses.reduce((s, e) => s + e.amount, 0)
   const totalI   = month.incomes.reduce((s, i) => s + i.amount, 0)
@@ -509,16 +523,28 @@ export default function MonthDetailPage() {
                             </span>
                           </td>
                           <td className="py-3">
-                            {!isClosed && (
-                              <div className="flex items-center gap-0.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                {exp.status === 'PENDENTE'
-                                  ? <button title="Pagar" onClick={() => setPayDialog(exp)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle size={16} /></button>
-                                  : <button title="Desmarcar" onClick={() => handleUnpay(exp)} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"><XCircle size={16} /></button>
-                                }
-                                <button title="Editar" onClick={() => setExpenseForm({ open: true, data: exp })} className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"><Pencil size={15} /></button>
-                                <button title="Remover" onClick={() => setDelExpense(exp)} className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 size={15} /></button>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-0.5 justify-end">
+                              {/* Invoice detail button — always visible when linked to a card invoice */}
+                              {invoiceByExpenseId[exp.id] && (
+                                <button
+                                  title="Ver lançamentos da fatura"
+                                  onClick={() => setInvoiceDetail(invoiceByExpenseId[exp.id])}
+                                  className="p-1.5 text-violet-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg"
+                                >
+                                  <List size={15} />
+                                </button>
+                              )}
+                              {!isClosed && (
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {exp.status === 'PENDENTE'
+                                    ? <button title="Pagar" onClick={() => setPayDialog(exp)} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg"><CheckCircle size={16} /></button>
+                                    : <button title="Desmarcar" onClick={() => handleUnpay(exp)} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"><XCircle size={16} /></button>
+                                  }
+                                  <button title="Editar" onClick={() => setExpenseForm({ open: true, data: exp })} className="p-1.5 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"><Pencil size={15} /></button>
+                                  <button title="Remover" onClick={() => setDelExpense(exp)} className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 size={15} /></button>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -594,6 +620,13 @@ export default function MonthDetailPage() {
           monthId={id}
           onClose={() => setImportInvoice(false)}
           onImported={load}
+        />
+      )}
+
+      {invoiceDetail && (
+        <InvoiceTransactionsModal
+          invoice={invoiceDetail}
+          onClose={() => setInvoiceDetail(null)}
         />
       )}
     </div>

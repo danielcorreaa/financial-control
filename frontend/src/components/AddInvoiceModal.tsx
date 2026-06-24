@@ -3,7 +3,7 @@ import { Loader2, Upload, CreditCard } from 'lucide-react'
 import Modal from './Modal'
 import api from '../lib/api'
 import { formatCurrency } from '../lib/utils'
-import type { CardBank, CardInvoice } from '../types'
+import type { CardBank, CardInvoice, ParsedTransaction } from '../types'
 import toast from 'react-hot-toast'
 
 const BANKS: { value: CardBank; label: string; color: string }[] = [
@@ -18,7 +18,7 @@ const BANKS: { value: CardBank; label: string; color: string }[] = [
 interface ParsedPDF {
   invoiceDueDate: string | null
   invoiceTotalAmount: number | null
-  transactions: { amount: number }[]
+  transactions: ParsedTransaction[]
 }
 
 export default function AddInvoiceModal({
@@ -28,12 +28,13 @@ export default function AddInvoiceModal({
   onClose: () => void
   onAdded: () => void
 }) {
-  const [bank, setBank]         = useState<CardBank>('BRADESCO')
-  const [cardName, setCardName] = useState('')
-  const [dueDate, setDueDate]   = useState('')
-  const [amount, setAmount]     = useState('')
-  const [parsing, setParsing]   = useState(false)
-  const [saving, setSaving]     = useState(false)
+  const [bank, setBank]                     = useState<CardBank>('BRADESCO')
+  const [cardName, setCardName]             = useState('')
+  const [dueDate, setDueDate]               = useState('')
+  const [amount, setAmount]                 = useState('')
+  const [parsedTransactions, setParsed]     = useState<ParsedTransaction[]>([])
+  const [parsing, setParsing]               = useState(false)
+  const [saving, setSaving]                 = useState(false)
 
   const isBradesco = bank === 'BRADESCO'
 
@@ -47,13 +48,14 @@ export default function AddInvoiceModal({
       const { data } = await api.post<ParsedPDF>('/invoices/parse', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      // Prefer the official total extracted from the PDF footer ("Total da fatura em real")
-      // to avoid summing false positives from two-column layout
       const total = data.invoiceTotalAmount
         ?? data.transactions.reduce((s, t) => s + t.amount, 0)
       setAmount(total.toFixed(2))
       if (data.invoiceDueDate) setDueDate(data.invoiceDueDate)
-      const source = data.invoiceTotalAmount ? 'total oficial da fatura' : `${data.transactions.length} transações detectadas`
+      setParsed(data.transactions)
+      const source = data.invoiceTotalAmount
+        ? 'total oficial da fatura'
+        : `${data.transactions.length} transações detectadas`
       toast.success(`PDF lido: ${formatCurrency(total)} (${source})`)
     } catch {
       toast.error('Erro ao ler o PDF. Verifique se é uma fatura Bradesco.')
@@ -72,6 +74,7 @@ export default function AddInvoiceModal({
         cardName: cardName.trim() || null,
         dueDate,
         totalAmount: parseFloat(amount),
+        transactions: parsedTransactions,
       })
       toast.success('Fatura adicionada e despesa lançada no mês!')
       onAdded()
@@ -144,7 +147,8 @@ export default function AddInvoiceModal({
             </label>
             {amount && (
               <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
-                ✓ Total detectado: {formatCurrency(parseFloat(amount))}
+                ✓ Total: {formatCurrency(parseFloat(amount))}
+                {parsedTransactions.length > 0 && ` · ${parsedTransactions.length} lançamentos detectados`}
               </p>
             )}
           </div>
@@ -185,7 +189,12 @@ export default function AddInvoiceModal({
             <CreditCard size={14} className="inline mr-1.5 -mt-0.5" />
             Será adicionado <strong>{formatCurrency(parseFloat(amount))}</strong> ao mês{' '}
             <strong>{new Date(dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</strong>
-            {' '}como despesa na categoria <strong>Cartão de Crédito</strong>.
+            {' '}como despesa <strong>Cartão de Crédito</strong>.
+            {parsedTransactions.length > 0 && (
+              <span className="block text-xs mt-1 text-green-600 dark:text-green-400">
+                Os {parsedTransactions.length} lançamentos individuais ficam disponíveis no botão "ver detalhes" dentro do mês.
+              </span>
+            )}
           </div>
         )}
 

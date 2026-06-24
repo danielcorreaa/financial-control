@@ -1,5 +1,6 @@
 package com.financial_control.financial_control.infrastructure.persistence.card;
 
+import com.financial_control.financial_control.application.invoice.dto.ParsedTransactionDTO;
 import com.financial_control.financial_control.domain.card.CardBank;
 import com.financial_control.financial_control.domain.card.CardInvoice;
 import org.springframework.data.annotation.Id;
@@ -7,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Document(collection = "card_invoices")
 public class CardInvoiceDocument {
@@ -19,6 +21,7 @@ public class CardInvoiceDocument {
     private double totalAmount;
     private String monthId;
     private String expenseId;
+    private List<ParsedTransactionDTO> transactions;
     private LocalDateTime createdAt;
 
     public CardInvoiceDocument() {}
@@ -32,20 +35,13 @@ public class CardInvoiceDocument {
         doc.totalAmount = invoice.getTotalAmount();
         doc.monthId = invoice.getMonthId();
         doc.expenseId = invoice.getExpenseId();
+        doc.transactions = invoice.getTransactions();
         doc.createdAt = invoice.getCreatedAt();
         return doc;
     }
 
     public CardInvoice toDomain() {
-        return new CardInvoice(id, bank, cardName, dueDate, totalAmount, monthId, expenseId, createdAt);
+        return new CardInvoice(id, bank, cardName, dueDate, totalAmount,
+                monthId, expenseId, transactions, createdAt);
     }
-
-    public String getId() { return id; }
-    public CardBank getBank() { return bank; }
-    public String getCardName() { return cardName; }
-    public LocalDate getDueDate() { return dueDate; }
-    public double getTotalAmount() { return totalAmount; }
-    public String getMonthId() { return monthId; }
-    public String getExpenseId() { return expenseId; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

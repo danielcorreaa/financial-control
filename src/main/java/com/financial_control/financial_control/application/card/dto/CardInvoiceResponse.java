@@ -1,10 +1,12 @@
 package com.financial_control.financial_control.application.card.dto;
 
+import com.financial_control.financial_control.application.invoice.dto.ParsedTransactionDTO;
 import com.financial_control.financial_control.domain.card.CardBank;
 import com.financial_control.financial_control.domain.card.CardInvoice;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CardInvoiceResponse(
         String id,
@@ -15,6 +17,7 @@ public record CardInvoiceResponse(
         double totalAmount,
         String monthId,
         String expenseId,
+        List<ParsedTransactionDTO> transactions,
         LocalDateTime createdAt
 ) {
     public static CardInvoiceResponse from(CardInvoice invoice) {
@@ -27,6 +30,7 @@ public record CardInvoiceResponse(
                 invoice.getTotalAmount(),
                 invoice.getMonthId(),
                 invoice.getExpenseId(),
+                invoice.getTransactions(),
                 invoice.getCreatedAt()
         );
     }
