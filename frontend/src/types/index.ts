@@ -136,6 +136,7 @@ export type CardBank = 'BRADESCO' | 'CAIXA' | 'ITAU' | 'MERCADO_PAGO' | 'RIACHUE
 export interface ParsedTransaction {
   originalDate: string
   description: string
+  city?: string
   amount: number
   suggestedCategory: ExpenseCategory
 }

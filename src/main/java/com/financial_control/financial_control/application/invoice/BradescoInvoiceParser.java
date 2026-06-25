@@ -83,6 +83,11 @@ public class BradescoInvoiceParser {
         return null;
     }
 
+    // Separa a cidade (palavras em MAIÚSCULAS no final) da descrição
+    private static final Pattern CITY_SUFFIX = Pattern.compile(
+            "\\s+([A-Z]{2,}(?:\\s+[A-Z]{2,})*)\\s*$"
+    );
+
     private List<ParsedTransactionDTO> extractTransactions(String[] lines) {
         List<ParsedTransactionDTO> result = new ArrayList<>();
 
@@ -93,34 +98,40 @@ public class BradescoInvoiceParser {
             Matcher m = TX_LINE.matcher(line);
             if (!m.matches()) continue;
 
-            String date        = m.group(1);
-            String description = m.group(2).trim();
-            String amountStr   = m.group(3);
-            boolean isCredit   = "-".equals(m.group(4).trim());
+            String date      = m.group(1);
+            String rawDesc   = m.group(2).trim();
+            String amountStr = m.group(3);
+            boolean isCredit = "-".equals(m.group(4).trim());
 
             if (isCredit) continue;
 
-            // Pula pagamentos, estornos
-            if (SKIP_PATTERN.matcher(description.toUpperCase()).find()) continue;
-
-            // Pula totalizadores
-            if (description.toUpperCase().startsWith("TOTAL")) continue;
+            if (SKIP_PATTERN.matcher(rawDesc.toUpperCase()).find()) continue;
+            if (rawDesc.toUpperCase().startsWith("TOTAL")) continue;
 
             double amount = parseAmount(amountStr);
             if (amount <= 0 || amount >= 5_000) continue;
 
+            String[] parts      = splitDescriptionCity(rawDesc);
+            String description  = parts[0];
+            String city         = parts[1];
+
             result.add(new ParsedTransactionDTO(
-                    date, cleanDescription(description), amount, guessCategory(description)
+                    date, description, city, amount, guessCategory(rawDesc)
             ));
         }
 
         return result;
     }
 
-    private String cleanDescription(String desc) {
-        // Remove trailing city name (all uppercase words at end)
-        String cleaned = desc.replaceAll("\\s+[A-Z]{2,}(?:\\s+[A-Z]{2,})*\\s*$", "").trim();
-        return cleaned.isEmpty() ? desc : cleaned;
+    // Retorna [descrição limpa, cidade ou null]
+    private String[] splitDescriptionCity(String raw) {
+        Matcher cm = CITY_SUFFIX.matcher(raw);
+        if (cm.find()) {
+            String desc = raw.substring(0, cm.start()).trim();
+            String city = cm.group(1).trim();
+            return new String[]{ desc.isEmpty() ? raw : desc, city };
+        }
+        return new String[]{ raw, null };
     }
 
     private String detectDueDate(String[] lines) {

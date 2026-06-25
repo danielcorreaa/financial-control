@@ -69,8 +69,15 @@ export default function InvoiceTransactionsModal({
                     <span className="text-xs text-gray-400 dark:text-slate-500 w-10 flex-shrink-0 tabular-nums">
                       {tx.originalDate}
                     </span>
-                    <span className="flex-1 text-sm text-gray-800 dark:text-slate-200 truncate">
-                      {tx.description}
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm text-gray-800 dark:text-slate-200 truncate">
+                        {tx.description}
+                      </span>
+                      {tx.city && (
+                        <span className="text-xs text-gray-400 dark:text-slate-500">
+                          {tx.city}
+                        </span>
+                      )}
                     </span>
                     <span className={`${CATEGORY_BADGE[tx.suggestedCategory] ?? 'badge-gray'} hidden sm:inline-flex flex-shrink-0`}>
                       {CATEGORY_LABELS[tx.suggestedCategory] ?? tx.suggestedCategory}
