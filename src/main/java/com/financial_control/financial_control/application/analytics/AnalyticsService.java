@@ -2,6 +2,9 @@ package com.financial_control.financial_control.application.analytics;
 
 import com.financial_control.financial_control.application.analytics.dto.InstallmentDTO;
 import com.financial_control.financial_control.application.analytics.dto.MonthCategoryTotals;
+import com.financial_control.financial_control.application.invoice.dto.ParsedTransactionDTO;
+import com.financial_control.financial_control.domain.card.CardInvoice;
+import com.financial_control.financial_control.domain.card.CardInvoiceRepository;
 import com.financial_control.financial_control.domain.expense.Expense;
 import com.financial_control.financial_control.domain.expense.ExpenseCategory;
 import com.financial_control.financial_control.domain.month.FinancialMonth;
@@ -28,9 +31,12 @@ public class AnalyticsService {
     );
 
     private final FinancialMonthRepository monthRepository;
+    private final CardInvoiceRepository cardInvoiceRepository;
 
-    public AnalyticsService(FinancialMonthRepository monthRepository) {
+    public AnalyticsService(FinancialMonthRepository monthRepository,
+                            CardInvoiceRepository cardInvoiceRepository) {
         this.monthRepository = monthRepository;
+        this.cardInvoiceRepository = cardInvoiceRepository;
     }
 
     public List<MonthCategoryTotals> getCategoryTotals(int year) {
@@ -55,26 +61,21 @@ public class AnalyticsService {
 
     public List<InstallmentDTO> getActiveInstallments() {
         YearMonth now = YearMonth.now();
-        List<FinancialMonth> months = monthRepository.findAll();
         List<InstallmentDTO> result = new ArrayList<>();
 
-        for (FinancialMonth m : months) {
+        // Parcelas detectadas nos nomes de despesas manuais
+        for (FinancialMonth m : monthRepository.findAll()) {
             for (Expense e : m.getExpenses()) {
                 Matcher matcher = INSTALLMENT.matcher(e.getName());
                 if (!matcher.find()) continue;
 
                 int current = Integer.parseInt(matcher.group(1));
-                int total = Integer.parseInt(matcher.group(2));
-                if (current >= total) continue; // already last installment
+                int total   = Integer.parseInt(matcher.group(2));
+                if (current >= total) continue;
 
-                LocalDate due = e.getDueDate();
+                LocalDate due     = e.getDueDate();
                 LocalDate endDate = due != null ? due.plusMonths(total - current) : null;
-
-                // Only include installments that haven't finished yet
-                if (endDate != null) {
-                    YearMonth endYM = YearMonth.from(endDate);
-                    if (endYM.isBefore(now)) continue;
-                }
+                if (endDate != null && YearMonth.from(endDate).isBefore(now)) continue;
 
                 String cleanName = e.getName().replaceAll("\\s*\\d{1,2}/\\d{1,2}\\s*$", "").trim();
                 result.add(new InstallmentDTO(
@@ -86,9 +87,42 @@ public class AnalyticsService {
             }
         }
 
-        result.sort(Comparator.comparing(
-                i -> i.endDate() != null ? i.endDate() : LocalDate.MAX
-        ));
+        // Parcelas detectadas nos lançamentos de faturas PDF (Bradesco)
+        // Agrupa por (nome, total) e mantém apenas o registro mais recente (maior current)
+        // para evitar duplicatas quando o mesmo item aparece em vários PDFs importados.
+        Map<String, InstallmentDTO> fromPdf = new LinkedHashMap<>();
+
+        for (CardInvoice invoice : cardInvoiceRepository.findAll()) {
+            if (invoice.getTransactions() == null) continue;
+
+            for (ParsedTransactionDTO tx : invoice.getTransactions()) {
+                Matcher matcher = INSTALLMENT.matcher(tx.description());
+                if (!matcher.find()) continue;
+
+                int current = Integer.parseInt(matcher.group(1));
+                int total   = Integer.parseInt(matcher.group(2));
+                if (current >= total) continue;
+
+                LocalDate due     = invoice.getDueDate();
+                LocalDate endDate = due != null ? due.plusMonths(total - current) : null;
+                if (endDate != null && YearMonth.from(endDate).isBefore(now)) continue;
+
+                String cleanName = tx.description().replaceAll("\\s*\\d{1,2}/\\d{1,2}\\s*$", "").trim();
+                String key       = cleanName + "|" + total;
+
+                InstallmentDTO existing = fromPdf.get(key);
+                if (existing == null || current > existing.current()) {
+                    fromPdf.put(key, new InstallmentDTO(
+                            invoice.getExpenseId(), invoice.getMonthId(), cleanName,
+                            tx.amount(), current, total, total - current,
+                            due, endDate
+                    ));
+                }
+            }
+        }
+
+        result.addAll(fromPdf.values());
+        result.sort(Comparator.comparing(i -> i.endDate() != null ? i.endDate() : LocalDate.MAX));
         return result;
     }
 }
