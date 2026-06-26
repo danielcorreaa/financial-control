@@ -50,58 +50,65 @@ export default function Layout() {
   )?.label ?? 'FinControl'
 
   const Sidebar = () => (
-    <aside className="flex flex-col h-full w-64 bg-sidebar text-white">
+    <aside className="flex flex-col h-full w-64 bg-sidebar border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 pb-6 border-b border-white/10"
+      <div className="flex items-center gap-3 px-5 pb-5 border-b border-white/[0.06]"
            style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}>
-        <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-          <TrendingUp size={20} className="text-white" />
+        <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-700/50 flex-shrink-0">
+          <TrendingUp size={15} className="text-white" />
         </div>
-        <span className="text-xl font-bold tracking-tight">FinControl</span>
-        <button className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
-          <X size={20} className="text-white/70 hover:text-white" />
+        <span className="text-[15px] font-bold tracking-tight text-white">FinControl</span>
+        <button className="ml-auto lg:hidden p-1 rounded-lg hover:bg-white/[0.06] transition-colors" onClick={() => setOpen(false)}>
+          <X size={16} className="text-slate-400 hover:text-white" />
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to} to={to} end={end}
             onClick={() => setOpen(false)}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150 ${
                 isActive
-                  ? 'bg-white/15 text-white shadow-lg shadow-black/20 ring-1 ring-white/20 backdrop-blur-sm'
-                  : 'text-white/65 hover:bg-white/10 hover:text-white'
+                  ? 'bg-violet-500/[0.14] text-white'
+                  : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200'
               }`
             }
           >
-            <Icon size={18} />
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon size={16} className={isActive ? 'text-violet-400' : 'text-slate-500'} />
+                <span className="flex-1">{label}</span>
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
       {/* User */}
-      <div className="px-4 py-4 border-t border-white/10">
-        <div className="flex items-center gap-2 px-2">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg shadow-black/20 ring-2 ring-white/20">
+      <div className="px-3 py-3 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/[0.04] transition-colors">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-            <p className="text-xs text-white/60 truncate">{user?.email}</p>
+            <p className="text-[13px] font-semibold text-white/90 truncate leading-tight">{user?.name}</p>
+            <p className="text-[11px] text-slate-500 truncate leading-tight">{user?.email}</p>
           </div>
-          <NotificationBell due={due} />
-          <button onClick={() => setDark(d => !d)} title={dark ? 'Modo claro' : 'Modo escuro'}
-            className="text-white/50 hover:text-white transition-colors p-1">
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button onClick={handleLogout} title="Sair"
-            className="text-white/50 hover:text-white transition-colors p-1">
-            <LogOut size={17} />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <NotificationBell due={due} />
+            <button onClick={() => setDark(d => !d)} title={dark ? 'Modo claro' : 'Modo escuro'}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] transition-colors">
+              {dark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+            <button onClick={handleLogout} title="Sair"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/[0.06] transition-colors">
+              <LogOut size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
@@ -135,10 +142,10 @@ export default function Layout() {
             <Menu size={22} className="text-gray-600" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-sidebar rounded-lg flex items-center justify-center">
-              <TrendingUp size={14} className="text-white" />
+            <div className="w-7 h-7 bg-violet-600 rounded-lg flex items-center justify-center shadow-sm shadow-violet-600/40">
+              <TrendingUp size={13} className="text-white" />
             </div>
-            <span className="font-bold text-gray-900">{currentPage}</span>
+            <span className="font-bold text-gray-900 dark:text-white">{currentPage}</span>
           </div>
         </header>
 

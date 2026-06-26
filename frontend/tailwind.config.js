@@ -10,7 +10,7 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'sidebar': 'linear-gradient(160deg, #0f0a2e 0%, #1e1157 35%, #3b1f8c 65%, #5b21b6 100%)',
+        'sidebar': 'linear-gradient(180deg, #13162a 0%, #0f1220 100%)',
       },
       boxShadow: {
         'card': '0 2px 16px 0 rgba(99,102,241,0.07)',
