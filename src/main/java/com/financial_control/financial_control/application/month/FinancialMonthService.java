@@ -12,6 +12,7 @@ import com.financial_control.financial_control.application.month.dto.MonthRespon
 import com.financial_control.financial_control.application.month.dto.MonthSummaryResponse;
 import com.financial_control.financial_control.application.month.dto.UpdateMonthCommand;
 import com.financial_control.financial_control.application.recurring.RecurringExpenseService;
+import com.financial_control.financial_control.domain.card.CardInvoiceRepository;
 import com.financial_control.financial_control.domain.expense.Expense;
 import com.financial_control.financial_control.domain.expense.ExpenseStatus;
 import com.financial_control.financial_control.domain.income.Income;
@@ -37,11 +38,14 @@ public class FinancialMonthService {
 
     private final FinancialMonthRepository repository;
     private final RecurringExpenseService recurringExpenseService;
+    private final CardInvoiceRepository cardInvoiceRepository;
 
     public FinancialMonthService(FinancialMonthRepository repository,
-                                 RecurringExpenseService recurringExpenseService) {
+                                 RecurringExpenseService recurringExpenseService,
+                                 CardInvoiceRepository cardInvoiceRepository) {
         this.repository = repository;
         this.recurringExpenseService = recurringExpenseService;
+        this.cardInvoiceRepository = cardInvoiceRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -99,6 +103,13 @@ public class FinancialMonthService {
     public void deleteMonth(String id) {
         findMonthOrThrow(id); // valida existência
         repository.deleteById(id);
+    }
+
+    public MonthResponse resetMonth(String id) {
+        FinancialMonth financialMonth = findMonthOrThrow(id);
+        financialMonth.reset(); // lança IllegalStateException se FECHADO
+        cardInvoiceRepository.deleteByMonthId(id);
+        return MonthResponse.from(repository.save(financialMonth));
     }
 
     // -------------------------------------------------------------------------

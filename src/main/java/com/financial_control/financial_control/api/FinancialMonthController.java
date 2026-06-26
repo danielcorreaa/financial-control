@@ -79,6 +79,12 @@ public class FinancialMonthController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/reset")
+    @Operation(summary = "Zerar um mês: remove todas as despesas e receitas (apenas meses abertos)")
+    public ResponseEntity<MonthResponse> resetMonth(@PathVariable String id) {
+        return ResponseEntity.ok(service.resetMonth(id));
+    }
+
     @GetMapping("/{id}/summary")
     @Operation(summary = "Obter o balanço financeiro de um mês")
     public ResponseEntity<MonthSummaryResponse> getSummary(@PathVariable String id) {

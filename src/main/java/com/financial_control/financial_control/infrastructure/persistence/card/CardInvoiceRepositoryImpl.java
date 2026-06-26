@@ -35,4 +35,9 @@ public class CardInvoiceRepositoryImpl implements CardInvoiceRepository {
     public void deleteById(String id) {
         mongo.deleteById(id);
     }
+
+    @Override
+    public void deleteByMonthId(String monthId) {
+        mongo.deleteByMonthId(monthId);
+    }
 }

@@ -160,6 +160,15 @@ public class FinancialMonth {
     }
 
     /**
+     * Remove todas as despesas e receitas do mês. Só funciona em meses abertos.
+     */
+    public void reset() {
+        ensureOpen();
+        this.expenses.clear();
+        this.incomes.clear();
+    }
+
+    /**
      * Atualiza as observações do mês.
      */
     public void updateNotes(String notes) {

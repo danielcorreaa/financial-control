@@ -8,4 +8,5 @@ public interface CardInvoiceRepository {
     Optional<CardInvoice> findById(String id);
     List<CardInvoice> findAll();
     void deleteById(String id);
+    void deleteByMonthId(String monthId);
 }

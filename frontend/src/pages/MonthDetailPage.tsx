@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Pencil, Trash2, CheckCircle, XCircle, Lock, Unlock, Loader2, RefreshCw,
-  Download, Printer, FileUp, List,
+  Download, Printer, FileUp, List, RotateCcw,
 } from 'lucide-react'
 import api from '../lib/api'
 import type { MonthResponse, Expense, Income, ExpenseCategory, IncomeType, CategoryBudget, CardInvoice } from '../types'
@@ -228,6 +228,7 @@ export default function MonthDetailPage() {
   const [delIncome,  setDelIncome]      = useState<Income  | null>(null)
   const [closeConfirm, setCloseConfirm]     = useState(false)
   const [reopenConfirm, setReopenConfirm]   = useState(false)
+  const [resetConfirm, setResetConfirm]     = useState(false)
   const [importInvoice, setImportInvoice]   = useState(false)
   const [invoiceDetail, setInvoiceDetail]   = useState<CardInvoice | null>(null)
 
@@ -299,6 +300,17 @@ export default function MonthDetailPage() {
     }
   }
 
+  async function handleReset() {
+    try {
+      await api.post(`/months/${id}/reset`)
+      toast.success('Mês zerado com sucesso.')
+      setResetConfirm(false)
+      load()
+    } catch {
+      toast.error('Erro ao zerar o mês.')
+    }
+  }
+
   async function handleImportRecurring() {
     try {
       const r = await api.post(`/months/${id}/expenses/import-recurring`)
@@ -358,6 +370,11 @@ export default function MonthDetailPage() {
           <button className="btn-secondary btn-sm" onClick={() => window.print()} title="Imprimir / Salvar PDF">
             <Printer size={14} /> <span className="hidden sm:inline">PDF</span>
           </button>
+          {!isClosed && (
+            <button className="btn-danger btn-sm" onClick={() => setResetConfirm(true)} title="Zerar Mês">
+              <RotateCcw size={14} /> <span className="hidden sm:inline">Zerar Mês</span>
+            </button>
+          )}
           {!isClosed && (
             <button className="btn-secondary btn-sm" onClick={() => setCloseConfirm(true)} title="Fechar Mês">
               <Lock size={14} /> <span className="hidden sm:inline">Fechar Mês</span>
@@ -615,6 +632,7 @@ export default function MonthDetailPage() {
       {delIncome  && <ConfirmDialog title="Remover Receita"  message={`Remover "${delIncome.description}"?`} onConfirm={handleDelIncome}  onCancel={() => setDelIncome(null)} />}
       {closeConfirm && <ConfirmDialog title="Fechar Mês" message="Meses fechados não permitem mais edições. Deseja continuar?" onConfirm={handleClose} onCancel={() => setCloseConfirm(false)} />}
       {reopenConfirm && <ConfirmDialog title="Reabrir Mês" message="Deseja reabrir este mês para novas edições?" onConfirm={handleReopen} onCancel={() => setReopenConfirm(false)} danger={false} />}
+      {resetConfirm && <ConfirmDialog title="Zerar Mês" message={`Isso vai apagar TODAS as despesas e receitas de ${MONTH_NAMES[month.month]}/${month.year}. Esta ação não pode ser desfeita. Deseja continuar?`} onConfirm={handleReset} onCancel={() => setResetConfirm(false)} />}
       {importInvoice && id && (
         <ImportInvoiceModal
           monthId={id}
