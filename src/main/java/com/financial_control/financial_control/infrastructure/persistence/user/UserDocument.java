@@ -28,19 +28,23 @@ public class UserDocument {
 
     private String passwordHash;
 
+    @Indexed(sparse = true)
+    private String googleId;
+
     private Role role;
 
     public static UserDocument from(User user) {
-        return new UserDocument(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                user.getRole()
-        );
+        UserDocument doc = new UserDocument();
+        doc.id           = user.getId();
+        doc.name         = user.getName();
+        doc.email        = user.getEmail();
+        doc.passwordHash = user.getPasswordHash();
+        doc.googleId     = user.getGoogleId();
+        doc.role         = user.getRole();
+        return doc;
     }
 
     public User toDomain() {
-        return new User(id, name, email, passwordHash, role);
+        return new User(id, name, email, passwordHash, googleId, role);
     }
 }

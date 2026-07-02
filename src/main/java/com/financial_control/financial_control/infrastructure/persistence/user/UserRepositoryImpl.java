@@ -34,6 +34,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByGoogleId(String googleId) {
+        return mongoRepository.findByGoogleId(googleId).map(UserDocument::toDomain);
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return mongoRepository.existsByEmail(email);
     }

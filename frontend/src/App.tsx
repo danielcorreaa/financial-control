@@ -14,6 +14,7 @@ import RecurringExpensesPage from './pages/RecurringExpensesPage'
 import BudgetPage from './pages/BudgetPage'
 import FaturasPage from './pages/FaturasPage'
 import AnalisesPage from './pages/AnalisesPage'
+import OAuthCallbackPage from './pages/OAuthCallbackPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -30,6 +31,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
       <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/months" element={<MonthsPage />} />

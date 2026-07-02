@@ -6,6 +6,7 @@ interface AuthContextType {
   user: AuthResponse | null
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  loginWithToken: (data: AuthResponse) => void
   logout: () => void
   isAuthenticated: boolean
 }
@@ -32,6 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data)
   }, [])
 
+  const loginWithToken = useCallback((data: AuthResponse) => {
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data))
+    setUser(data)
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -39,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

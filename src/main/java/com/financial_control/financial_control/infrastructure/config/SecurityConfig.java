@@ -1,6 +1,7 @@
 package com.financial_control.financial_control.infrastructure.config;
 
 import com.financial_control.financial_control.infrastructure.security.JwtAuthenticationFilter;
+import com.financial_control.financial_control.infrastructure.security.OAuth2SuccessHandler;
 import com.financial_control.financial_control.infrastructure.security.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,13 +35,20 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
 
+    // Vazio quando GOOGLE_CLIENT_ID não está configurado — OAuth2 permanece desabilitado
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    private String googleClientId;
+
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
-                          UserDetailsServiceImpl userDetailsService) {
-        this.jwtAuthFilter = jwtAuthFilter;
-        this.userDetailsService = userDetailsService;
+                          UserDetailsServiceImpl userDetailsService,
+                          OAuth2SuccessHandler oAuth2SuccessHandler) {
+        this.jwtAuthFilter        = jwtAuthFilter;
+        this.userDetailsService   = userDetailsService;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
 
     @Bean
@@ -51,14 +59,23 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/api-docs").permitAll()
                 .anyRequest().authenticated()
             )
+            // Sessão permitida apenas para o fluxo OAuth2; JWT cuida do resto
             .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // Ativa OAuth2 somente se GOOGLE_CLIENT_ID estiver configurado
+        if (googleClientId != null && !googleClientId.isBlank()) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .successHandler(oAuth2SuccessHandler)
+            );
+        }
 
         return http.build();
     }
